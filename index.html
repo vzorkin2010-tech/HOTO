@@ -493,17 +493,12 @@
             position: relative;
             animation: messageAppear 0.3s ease-out;
             word-wrap: break-word;
+            transition: var(--transition);
+            position: relative;
         }
 
-        @keyframes messageAppear {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        .message:hover {
+            transform: translateY(-1px);
         }
 
         .message.sent {
@@ -520,11 +515,98 @@
             border-bottom-left-radius: 4px;
         }
 
+        .message-actions {
+            position: absolute;
+            top: -10px;
+            right: 10px;
+            background: var(--primary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            padding: 4px;
+            display: none;
+            gap: 4px;
+            box-shadow: var(--shadow);
+            z-index: 10;
+        }
+
+        .message.sent .message-actions {
+            right: auto;
+            left: 10px;
+        }
+
+        .message:hover .message-actions {
+            display: flex;
+        }
+
+        .message-action-btn {
+            background: none;
+            border: none;
+            padding: 6px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: var(--transition);
+            color: var(--text-primary);
+        }
+
+        .message-action-btn:hover {
+            background: var(--secondary-bg);
+        }
+
+        .message-action-btn.delete {
+            color: var(--error-color);
+        }
+
+        .message-action-btn.edit {
+            color: var(--accent-color);
+        }
+
         .message-time {
             font-size: 11px;
             opacity: 0.7;
             margin-top: 4px;
             text-align: right;
+        }
+
+        .message.editing {
+            background: rgba(255, 193, 7, 0.1) !important;
+            border: 2px solid #ffc107 !important;
+        }
+
+        .edit-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--primary-bg);
+            color: var(--text-primary);
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .edit-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        .edit-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: var(--transition);
+        }
+
+        .edit-save {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .edit-cancel {
+            background: var(--secondary-bg);
+            color: var(--text-primary);
         }
 
         /* ИСПРАВЛЕННОЕ ПОЛЕ ВВОДА СООБЩЕНИЙ */
@@ -795,6 +877,17 @@
 
             .modal-content {
                 padding: 20px;
+            }
+
+            .message-actions {
+                position: static;
+                display: flex !important;
+                margin-top: 8px;
+                justify-content: flex-end;
+            }
+
+            .message.sent .message-actions {
+                justify-content: flex-start;
             }
         }
 
@@ -1072,6 +1165,7 @@
         let chatsListener = null;
         let messagesListener = null;
         let searchTimeout = null;
+        let editingMessageId = null;
 
         // Инициализация приложения
         document.addEventListener('DOMContentLoaded', function() {
@@ -1513,7 +1607,7 @@
 
                     snapshot.forEach(doc => {
                         const message = doc.data();
-                        const messageElement = createMessageElement(message);
+                        const messageElement = createMessageElement(message, doc.id);
                         messagesContainer.appendChild(messageElement);
                     });
 
@@ -1527,19 +1621,129 @@
                 });
         }
 
-        function createMessageElement(message) {
+        function createMessageElement(message, messageId) {
             const div = document.createElement('div');
             const isSent = message.senderId === currentUser.uid;
-            div.className = `message ${isSent ? 'sent' : 'received'}`;
+            const isEditing = editingMessageId === messageId;
+            div.className = `message ${isSent ? 'sent' : 'received'} ${isEditing ? 'editing' : ''}`;
             
             const time = message.timestamp ? formatTime(message.timestamp.toDate()) : 'только что';
             
-            div.innerHTML = `
-                <div class="message-text">${message.text}</div>
-                <div class="message-time">${time}</div>
-            `;
+            if (isEditing) {
+                div.innerHTML = `
+                    <input type="text" class="edit-input" value="${message.text}" id="edit-input-${messageId}">
+                    <div class="edit-actions">
+                        <button class="edit-btn edit-save" onclick="saveMessageEdit('${messageId}')">Сохранить</button>
+                        <button class="edit-btn edit-cancel" onclick="cancelMessageEdit()">Отмена</button>
+                    </div>
+                    <div class="message-time">${time}</div>
+                `;
+            } else {
+                div.innerHTML = `
+                    <div class="message-text">${message.text}</div>
+                    <div class="message-actions">
+                        ${isSent ? `
+                            <button class="message-action-btn edit" onclick="editMessage('${messageId}', '${message.text}')">✏️</button>
+                            <button class="message-action-btn delete" onclick="deleteMessage('${messageId}')">🗑️</button>
+                        ` : ''}
+                    </div>
+                    <div class="message-time">${time}</div>
+                `;
+            }
             
             return div;
+        }
+
+        // УДАЛЕНИЕ СООБЩЕНИЯ
+        async function deleteMessage(messageId) {
+            if (!currentChat || !confirm('Вы уверены, что хотите удалить это сообщение?')) {
+                return;
+            }
+
+            try {
+                await db.collection('chats').doc(currentChat.id).collection('messages').doc(messageId).delete();
+                
+                // Обновляем последнее сообщение в чате если нужно
+                const messagesQuery = await db.collection('chats').doc(currentChat.id).collection('messages')
+                    .orderBy('timestamp', 'desc')
+                    .limit(1)
+                    .get();
+
+                if (messagesQuery.empty) {
+                    // Нет сообщений - очищаем последнее сообщение
+                    await db.collection('chats').doc(currentChat.id).update({
+                        lastMessage: '',
+                        lastMessageTime: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                } else {
+                    // Обновляем последнее сообщение
+                    const lastMessage = messagesQuery.docs[0].data();
+                    await db.collection('chats').doc(currentChat.id).update({
+                        lastMessage: lastMessage.text.length > 50 ? lastMessage.text.substring(0, 50) + '...' : lastMessage.text,
+                        lastMessageTime: lastMessage.timestamp
+                    });
+                }
+            } catch (error) {
+                console.error('Ошибка удаления сообщения:', error);
+                alert('Ошибка удаления сообщения: ' + error.message);
+            }
+        }
+
+        // РЕДАКТИРОВАНИЕ СООБЩЕНИЯ
+        function editMessage(messageId, currentText) {
+            editingMessageId = messageId;
+            loadMessages(currentChat.id);
+            
+            // Фокус на поле ввода после рендера
+            setTimeout(() => {
+                const editInput = document.getElementById(`edit-input-${messageId}`);
+                if (editInput) {
+                    editInput.focus();
+                    editInput.select();
+                }
+            }, 100);
+        }
+
+        async function saveMessageEdit(messageId) {
+            const editInput = document.getElementById(`edit-input-${messageId}`);
+            const newText = editInput.value.trim();
+
+            if (!newText) {
+                alert('Сообщение не может быть пустым');
+                return;
+            }
+
+            try {
+                await db.collection('chats').doc(currentChat.id).collection('messages').doc(messageId).update({
+                    text: newText,
+                    edited: true,
+                    editedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                // Обновляем последнее сообщение в чате если это последнее сообщение
+                const messagesQuery = await db.collection('chats').doc(currentChat.id).collection('messages')
+                    .orderBy('timestamp', 'desc')
+                    .limit(1)
+                    .get();
+
+                if (!messagesQuery.empty && messagesQuery.docs[0].id === messageId) {
+                    await db.collection('chats').doc(currentChat.id).update({
+                        lastMessage: newText.length > 50 ? newText.substring(0, 50) + '...' : newText,
+                        lastMessageTime: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }
+
+                editingMessageId = null;
+                loadMessages(currentChat.id);
+            } catch (error) {
+                console.error('Ошибка редактирования сообщения:', error);
+                alert('Ошибка редактирования сообщения: ' + error.message);
+            }
+        }
+
+        function cancelMessageEdit() {
+            editingMessageId = null;
+            loadMessages(currentChat.id);
         }
 
         async function sendMessage() {

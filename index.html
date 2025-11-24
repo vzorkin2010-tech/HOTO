@@ -1274,6 +1274,7 @@
         function loadChats() {
             if (chatsListener) chatsListener();
 
+            // Реальная подписка на обновления чатов
             chatsListener = db.collection('chats')
                 .where('participants', 'array-contains', currentUser.uid)
                 .orderBy('lastMessageTime', 'desc')
@@ -1369,6 +1370,7 @@
             const messagesContainer = document.getElementById('messages-container');
             messagesContainer.innerHTML = '<p class="text-center">Загрузка сообщений...</p>';
 
+            // Реальная подписка на обновления сообщений
             messagesListener = db.collection('chats').doc(chatId).collection('messages')
                 .orderBy('timestamp', 'asc')
                 .onSnapshot((snapshot) => {
@@ -1385,6 +1387,7 @@
                         messagesContainer.appendChild(messageElement);
                     });
 
+                    // Автопрокрутка к последнему сообщению
                     setTimeout(() => {
                         messagesContainer.scrollTop = messagesContainer.scrollHeight;
                     }, 100);
@@ -1467,6 +1470,21 @@
                 if (navBtn) navBtn.classList.add('active');
             }
         }
+
+        // Функция для принудительного обновления чатов
+        function refreshChats() {
+            if (currentUser) {
+                loadChats();
+            }
+        }
+
+        // Автоматическое обновление каждые 5 секунд
+        setInterval(() => {
+            if (currentUser) {
+                refreshChats();
+            }
+        }, 5000);
+
     </script>
 </body>
 </html>

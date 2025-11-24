@@ -1575,98 +1575,8 @@
             font-size: 14px;
         }
 
-        /* СТИЛИ ДЛЯ СЕКЦИИ ПК ПРИЛОЖЕНИЯ */
-        .pc-app-section {
-            padding: 20px;
-            max-width: 600px;
-            margin: 0 auto;
-        }
-
-        .pc-app-content {
-            background: var(--secondary-bg);
-            border-radius: var(--border-radius);
-            padding: 40px;
-            text-align: center;
-            border: 2px solid var(--border-color);
-            transition: var(--transition);
-        }
-
-        .pc-app-content:hover {
-            border-color: var(--accent-color);
-            transform: translateY(-5px);
-            box-shadow: var(--shadow);
-        }
-
-        .pc-app-icon {
-            font-size: 80px;
-            margin-bottom: 30px;
-        }
-
-        .pc-app-title {
-            font-size: 2.2rem;
-            margin-bottom: 20px;
-            color: var(--text-primary);
-        }
-
-        .pc-app-description {
-            font-size: 1.2rem;
-            color: var(--text-secondary);
-            margin-bottom: 40px;
-            line-height: 1.6;
-        }
-
-        .download-btn {
-            background: var(--accent-color);
-            color: white;
-            border: none;
-            padding: 18px 40px;
-            border-radius: var(--border-radius);
-            font-size: 1.2rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: var(--transition);
-            display: inline-flex;
-            align-items: center;
-            gap: 12px;
-            text-decoration: none;
-            min-height: 70px;
-        }
-
-        .download-btn:hover {
-            background: var(--accent-hover);
-            transform: translateY(-2px);
-            box-shadow: var(--shadow);
-        }
-
-        .version-info {
-            margin-top: 25px;
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-        }
-
-        @media (max-width: 768px) {
-            .pc-app-section {
-                padding: 15px;
-            }
-            
-            .pc-app-content {
-                padding: 30px 20px;
-            }
-            
-            .pc-app-title {
-                font-size: 1.8rem;
-            }
-            
-            .pc-app-description {
-                font-size: 1.1rem;
-            }
-            
-            .download-btn {
-                width: 100%;
-                justify-content: center;
-                padding: 16px 20px;
-                font-size: 1.1rem;
-            }
+        .hidden {
+            display: none !important;
         }
     </style>
 </head>
@@ -1735,9 +1645,6 @@
                         <button onclick="showSection('search')" class="nav-btn">
                             🔍 Поиск
                         </button>
-                        <button onclick="showSection('pc-app')" class="nav-btn">
-                            💻 ПК приложение
-                        </button>
                         <button onclick="showSection('profile')" class="nav-btn">
                             ⚙️ Профиль
                         </button>
@@ -1766,27 +1673,6 @@
                         </div>
                         <div id="search-results" class="users-list">
                             <p class="text-center">Введите username для поиска</p>
-                        </div>
-                    </div>
-
-                    <!-- Секция ПК приложения -->
-                    <div id="pc-app-section" class="content-section">
-                        <div class="pc-app-section">
-                            <div class="pc-app-content">
-                                <div class="pc-app-icon">💻</div>
-                                <h2 class="pc-app-title">Hoto для Windows</h2>
-                                <p class="pc-app-description">
-                                    Скачайте приложение Hoto на Windows 10/11 для большего удобства и расширенного функционала
-                                </p>
-                                
-                                <a href="https://disk.yandex.ru/d/2kt0kxfr7kUy9A" target="_blank" class="download-btn">
-                                    📥 Скачать для Windows
-                                </a>
-                                
-                                <div class="version-info">
-                                    <p>Версия 1.0.0 | Совместимо с Windows 10/11 | Размер: ~200 МБ</p>
-                                </div>
-                            </div>
                         </div>
                     </div>
 

@@ -243,6 +243,8 @@
             --border-color: #dee2e6;
             --success-color: #28a745;
             --error-color: #dc3545;
+            --group-color: #6f42c1;
+            --group-hover: #5a32a3;
             --shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             --border-radius: 12px;
             --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -257,6 +259,8 @@
             --accent-color: #4dabf7;
             --accent-hover: #339af0;
             --border-color: #404040;
+            --group-color: #8b5cf6;
+            --group-hover: #7c3aed;
             --shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
         }
 
@@ -320,6 +324,30 @@
             cursor: not-allowed;
             transform: none;
             opacity: 0.7;
+        }
+
+        .btn-group {
+            background: var(--group-color);
+            color: white;
+            border: none;
+            padding: 14px 20px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: var(--transition);
+            min-height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            touch-action: manipulation;
+        }
+
+        .btn-group:hover:not(:disabled) {
+            background: var(--group-hover);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow);
         }
 
         .btn-secondary {
@@ -535,6 +563,20 @@
             border: 2px solid var(--accent-color);
         }
 
+        .avatar-group {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--group-color);
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+            border: 2px solid var(--group-color);
+        }
+
         .avatar-large {
             width: 100px;
             height: 100px;
@@ -575,6 +617,17 @@
         .nav-btn:hover, 
         .nav-btn.active {
             background: var(--accent-color);
+            color: white;
+            transform: translateX(8px);
+        }
+
+        .nav-btn.group {
+            background: transparent;
+        }
+
+        .nav-btn.group:hover,
+        .nav-btn.group.active {
+            background: var(--group-color);
             color: white;
             transform: translateX(8px);
         }
@@ -628,8 +681,14 @@
             font-weight: 600;
         }
 
+        .section-actions {
+            display: flex;
+            gap: 12px;
+        }
+
         .chats-list, 
-        .users-list {
+        .users-list,
+        .groups-list {
             display: flex;
             flex-direction: column;
             gap: 12px;
@@ -639,28 +698,33 @@
         }
 
         .chats-list::-webkit-scrollbar,
-        .users-list::-webkit-scrollbar {
+        .users-list::-webkit-scrollbar,
+        .groups-list::-webkit-scrollbar {
             width: 6px;
         }
 
         .chats-list::-webkit-scrollbar-thumb,
-        .users-list::-webkit-scrollbar-thumb {
+        .users-list::-webkit-scrollbar-thumb,
+        .groups-list::-webkit-scrollbar-thumb {
             background: rgba(0, 0, 0, 0.1);
             border-radius: 3px;
         }
 
         [data-theme="dark"] .chats-list::-webkit-scrollbar-thumb,
-        [data-theme="dark"] .users-list::-webkit-scrollbar-thumb {
+        [data-theme="dark"] .users-list::-webkit-scrollbar-thumb,
+        [data-theme="dark"] .groups-list::-webkit-scrollbar-thumb {
             background: rgba(255, 255, 255, 0.1);
         }
 
         .chats-list::-webkit-scrollbar-thumb:hover,
-        .users-list::-webkit-scrollbar-thumb:hover {
+        .users-list::-webkit-scrollbar-thumb:hover,
+        .groups-list::-webkit-scrollbar-thumb:hover {
             background: var(--accent-color);
         }
 
         .chat-item, 
-        .user-item {
+        .user-item,
+        .group-item {
             display: flex;
             align-items: center;
             gap: 16px;
@@ -674,10 +738,15 @@
         }
 
         .chat-item:hover, 
-        .user-item:hover {
+        .user-item:hover,
+        .group-item:hover {
             border-color: var(--accent-color);
             transform: translateY(-2px);
             box-shadow: var(--shadow);
+        }
+
+        .group-item:hover {
+            border-color: var(--group-color);
         }
 
         .search-box {
@@ -725,6 +794,15 @@
             margin-bottom: 20px;
         }
 
+        .group-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+
         /* ПРОСТАЯ СТРЕЛОчка НАЗАД */
         .btn-back {
             background: none;
@@ -758,6 +836,21 @@
         }
 
         .chat-user-info:hover {
+            background: var(--secondary-bg);
+        }
+
+        .group-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: var(--border-radius);
+            transition: var(--transition);
+            flex: 1;
+        }
+
+        .group-info:hover {
             background: var(--secondary-bg);
         }
 
@@ -829,6 +922,21 @@
             background: var(--secondary-bg);
             color: var(--text-primary);
             border-bottom-left-radius: 4px;
+        }
+
+        .message.group {
+            align-self: flex-start;
+            background: var(--group-color);
+            color: white;
+            border-bottom-left-radius: 4px;
+            max-width: 80%;
+        }
+
+        .message-sender {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-bottom: 4px;
+            font-weight: 600;
         }
 
         .message-actions {
@@ -1127,6 +1235,61 @@
             min-height: 60px;
         }
 
+        .members-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .member-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: var(--secondary-bg);
+            border-radius: var(--border-radius);
+        }
+
+        .member-role {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-left: auto;
+        }
+
+        .member-role.owner {
+            color: var(--group-color);
+            font-weight: 600;
+        }
+
+        .group-key {
+            background: var(--secondary-bg);
+            padding: 12px;
+            border-radius: var(--border-radius);
+            font-family: monospace;
+            word-break: break-all;
+            margin: 16px 0;
+            border: 2px dashed var(--border-color);
+        }
+
+        .copy-key-btn {
+            background: var(--group-color);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-size: 14px;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .copy-key-btn:hover {
+            background: var(--group-hover);
+        }
+
         @media (max-width: 768px) {
             .main-container {
                 flex-direction: column;
@@ -1261,6 +1424,16 @@
             color: var(--text-secondary);
         }
 
+        .group-info-content {
+            flex: 1;
+        }
+
+        .group-info-content p {
+            margin: 2px 0;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
         .loading {
             opacity: 0.7;
             pointer-events: none;
@@ -1288,7 +1461,6 @@
     </style>
 </head>
 <body>
-    <!-- Остальной HTML код остается без изменений -->
     <div id="app">
         <!-- Секция аутентификации -->
         <div id="auth-section" class="section active">
@@ -1350,6 +1522,9 @@
                         <button onclick="showSection('chats')" class="nav-btn active">
                             💬 Мои чаты
                         </button>
+                        <button onclick="showSection('groups')" class="nav-btn group">
+                            👥 Группы
+                        </button>
                         <button onclick="showSection('search')" class="nav-btn">
                             🔍 Поиск
                         </button>
@@ -1368,6 +1543,19 @@
                         </div>
                         <div id="chats-list" class="chats-list">
                             <p class="text-center">Загрузка пользователей...</p>
+                        </div>
+                    </div>
+
+                    <!-- Секция групп -->
+                    <div id="groups-section" class="content-section">
+                        <div class="section-header">
+                            <h3>Мои группы</h3>
+                            <div class="section-actions">
+                                <button onclick="showCreateGroupModal()" class="btn-group">Создать группу</button>
+                            </div>
+                        </div>
+                        <div id="groups-list" class="groups-list">
+                            <p class="text-center">Загрузка групп...</p>
                         </div>
                     </div>
 
@@ -1441,6 +1629,34 @@
                             <button onclick="sendMessage()" class="send-button" disabled>➤</button>
                         </div>
                     </div>
+
+                    <!-- Секция группового чата -->
+                    <div id="group-chat-section" class="content-section">
+                        <div class="group-header">
+                            <button onclick="showSection('groups')" class="btn-back">←</button>
+                            <div class="group-info" onclick="showGroupSettings()">
+                                <div id="group-chat-avatar" class="avatar-group">G</div>
+                                <span id="group-chat-name">Группа</span>
+                            </div>
+                        </div>
+                        
+                        <div id="group-messages-container" class="messages-container">
+                            <p class="text-center">Выберите группу для общения</p>
+                        </div>
+                        
+                        <div class="message-input-container">
+                            <div class="message-input-wrapper">
+                                <textarea 
+                                    id="group-message-input" 
+                                    placeholder="Введите сообщение..." 
+                                    class="message-input" 
+                                    disabled
+                                    rows="1"
+                                ></textarea>
+                            </div>
+                            <button onclick="sendGroupMessage()" class="send-button" disabled>➤</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1473,6 +1689,76 @@
         </div>
     </div>
 
+    <!-- Модальное окно создания группы -->
+    <div id="create-group-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Создать группу</h3>
+                <button class="modal-close" onclick="closeCreateGroupModal()">×</button>
+            </div>
+            <div class="form-group">
+                <label>Название группы:</label>
+                <input type="text" id="group-name-input" class="form-input" placeholder="Введите название группы">
+            </div>
+            <div class="form-group">
+                <label>Описание группы:</label>
+                <textarea id="group-description-input" class="form-input" rows="3" placeholder="Описание группы"></textarea>
+            </div>
+            <button onclick="createGroup()" class="btn-group">Создать группу</button>
+        </div>
+    </div>
+
+    <!-- Модальное окно вступления в группу -->
+    <div id="join-group-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Вступить в группу</h3>
+                <button class="modal-close" onclick="closeJoinGroupModal()">×</button>
+            </div>
+            <div class="form-group">
+                <label>Ключ группы:</label>
+                <input type="text" id="group-key-input" class="form-input" placeholder="Введите ключ группы">
+            </div>
+            <button onclick="joinGroup()" class="btn-group">Вступить в группу</button>
+        </div>
+    </div>
+
+    <!-- Модальное окно настроек группы -->
+    <div id="group-settings-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Настройки группы</h3>
+                <button class="modal-close" onclick="closeGroupSettings()">×</button>
+            </div>
+            <div class="profile-preview">
+                <div id="group-settings-avatar" class="avatar-large">G</div>
+            </div>
+            <div class="profile-info">
+                <div class="profile-field">
+                    <div class="profile-label">Название группы</div>
+                    <div id="group-settings-name" class="profile-value">Группа</div>
+                </div>
+                <div class="profile-field">
+                    <div class="profile-label">Описание</div>
+                    <div id="group-settings-description" class="profile-bio">Нет описания</div>
+                </div>
+                <div class="profile-field">
+                    <div class="profile-label">Ключ группы</div>
+                    <div class="group-key" id="group-settings-key">loading...</div>
+                    <button class="copy-key-btn" onclick="copyGroupKey()">
+                        📋 Копировать ключ
+                    </button>
+                </div>
+                <div class="profile-field">
+                    <div class="profile-label">Участники</div>
+                    <div id="group-members-list" class="members-list">
+                        <p class="text-center">Загрузка...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // === FIREBASE КОНФИГУРАЦИЯ ===
         const firebaseConfig = {
@@ -1495,9 +1781,12 @@
         let currentUserData = null;
         let currentChat = null;
         let currentChatUser = null;
+        let currentGroup = null;
         let usersCache = new Map();
+        let groupsCache = new Map();
         let chatsListener = null;
         let messagesListener = null;
+        let groupMessagesListener = null;
         let searchTimeout = null;
         let editingMessageId = null;
 
@@ -1526,6 +1815,7 @@
                     await loadUserProfile(user.uid);
                     showMainApp();
                     loadAllUsers();
+                    loadUserGroups();
                 } else {
                     showAuth();
                 }
@@ -1540,6 +1830,13 @@
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
                     sendMessage();
+                }
+            });
+
+            document.getElementById('group-message-input').addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendGroupMessage();
                 }
             });
             
@@ -1557,10 +1854,33 @@
                 this.style.height = Math.min(this.scrollHeight, 120) + 'px';
             });
 
-            // Закрытие модального окна по клику на фон
+            document.getElementById('group-message-input').addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+            });
+
+            // Закрытие модальных окон по клику на фон
             document.getElementById('user-profile-modal').addEventListener('click', function(e) {
                 if (e.target === this) {
                     closeUserProfile();
+                }
+            });
+
+            document.getElementById('create-group-modal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeCreateGroupModal();
+                }
+            });
+
+            document.getElementById('join-group-modal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeJoinGroupModal();
+                }
+            });
+
+            document.getElementById('group-settings-modal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeGroupSettings();
                 }
             });
         }
@@ -1651,6 +1971,7 @@
         async function logout() {
             if (chatsListener) chatsListener();
             if (messagesListener) messagesListener();
+            if (groupMessagesListener) groupMessagesListener();
             await auth.signOut();
         }
 
@@ -1725,6 +2046,350 @@
             } catch (error) {
                 alert('Ошибка обновления профиля: ' + error.message);
             }
+        }
+
+        // === СИСТЕМА ГРУПП ===
+
+        function showCreateGroupModal() {
+            document.getElementById('create-group-modal').classList.add('active');
+        }
+
+        function closeCreateGroupModal() {
+            document.getElementById('create-group-modal').classList.remove('active');
+        }
+
+        function showJoinGroupModal() {
+            document.getElementById('join-group-modal').classList.add('active');
+        }
+
+        function closeJoinGroupModal() {
+            document.getElementById('join-group-modal').classList.remove('active');
+        }
+
+        function generateGroupKey() {
+            return Math.random().toString(36).substring(2, 10).toUpperCase() + 
+                   Math.random().toString(36).substring(2, 10).toUpperCase();
+        }
+
+        async function createGroup() {
+            const name = document.getElementById('group-name-input').value.trim();
+            const description = document.getElementById('group-description-input').value.trim();
+
+            if (!name) {
+                alert('Введите название группы');
+                return;
+            }
+
+            try {
+                const groupKey = generateGroupKey();
+                const groupRef = await db.collection('groups').add({
+                    name: name,
+                    description: description,
+                    ownerId: currentUser.uid,
+                    groupKey: groupKey,
+                    members: [currentUser.uid],
+                    memberData: {
+                        [currentUser.uid]: {
+                            nickname: currentUserData.nickname,
+                            username: currentUserData.username,
+                            role: 'owner',
+                            joinedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        }
+                    },
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                closeCreateGroupModal();
+                alert(`Группа создана! Ключ группы: ${groupKey}\nПоделитесь этим ключом с участниками.`);
+                loadUserGroups();
+            } catch (error) {
+                alert('Ошибка создания группы: ' + error.message);
+            }
+        }
+
+        async function joinGroup() {
+            const groupKey = document.getElementById('group-key-input').value.trim().toUpperCase();
+
+            if (!groupKey) {
+                alert('Введите ключ группы');
+                return;
+            }
+
+            try {
+                const groupQuery = await db.collection('groups')
+                    .where('groupKey', '==', groupKey)
+                    .get();
+
+                if (groupQuery.empty) {
+                    alert('Группа с таким ключом не найдена');
+                    return;
+                }
+
+                const groupDoc = groupQuery.docs[0];
+                const groupData = groupDoc.data();
+
+                if (groupData.members.includes(currentUser.uid)) {
+                    alert('Вы уже состоите в этой группе');
+                    return;
+                }
+
+                // Добавляем пользователя в группу
+                await db.collection('groups').doc(groupDoc.id).update({
+                    members: firebase.firestore.FieldValue.arrayUnion(currentUser.uid),
+                    [`memberData.${currentUser.uid}`]: {
+                        nickname: currentUserData.nickname,
+                        username: currentUserData.username,
+                        role: 'member',
+                        joinedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }
+                });
+
+                closeJoinGroupModal();
+                alert('Вы успешно вступили в группу!');
+                loadUserGroups();
+            } catch (error) {
+                alert('Ошибка вступления в группу: ' + error.message);
+            }
+        }
+
+        async function loadUserGroups() {
+            try {
+                const groupsQuery = await db.collection('groups')
+                    .where('members', 'array-contains', currentUser.uid)
+                    .get();
+
+                const groupsContainer = document.getElementById('groups-list');
+                groupsContainer.innerHTML = '';
+
+                if (groupsQuery.empty) {
+                    groupsContainer.innerHTML = `
+                        <div class="text-center">
+                            <p>У вас пока нет групп</p>
+                            <button onclick="showCreateGroupModal()" class="btn-group mt-4">Создать группу</button>
+                            <button onclick="showJoinGroupModal()" class="btn-secondary mt-2">Вступить в группу</button>
+                        </div>
+                    `;
+                    return;
+                }
+
+                groupsQuery.forEach(doc => {
+                    const group = doc.data();
+                    const groupElement = createGroupElement(group, doc.id);
+                    groupsContainer.appendChild(groupElement);
+                });
+
+                // Добавляем кнопку вступления в группу
+                const joinButton = document.createElement('button');
+                joinButton.className = 'btn-secondary mt-4';
+                joinButton.textContent = 'Вступить в группу';
+                joinButton.onclick = showJoinGroupModal;
+                groupsContainer.appendChild(joinButton);
+
+            } catch (error) {
+                console.error('Ошибка загрузки групп:', error);
+                document.getElementById('groups-list').innerHTML = '<p class="text-center">Ошибка загрузки групп</p>';
+            }
+        }
+
+        function createGroupElement(group, groupId) {
+            const div = document.createElement('div');
+            div.className = 'group-item';
+            div.onclick = () => openGroupChat(groupId);
+            
+            const firstLetter = group.name ? group.name.charAt(0).toUpperCase() : 'G';
+            const membersCount = group.members ? group.members.length : 0;
+            
+            div.innerHTML = `
+                <div class="avatar-group">${firstLetter}</div>
+                <div class="group-info-content">
+                    <strong>${group.name}</strong>
+                    <p>${group.description || 'Нет описания'}</p>
+                    <p>Участников: ${membersCount}</p>
+                </div>
+            `;
+            return div;
+        }
+
+        async function openGroupChat(groupId) {
+            try {
+                const groupDoc = await db.collection('groups').doc(groupId).get();
+                if (!groupDoc.exists) {
+                    alert('Группа не найдена');
+                    return;
+                }
+
+                currentGroup = { id: groupId, ...groupDoc.data() };
+                
+                document.getElementById('group-chat-name').textContent = currentGroup.name;
+                const groupAvatar = document.getElementById('group-chat-avatar');
+                const firstLetter = currentGroup.name ? currentGroup.name.charAt(0).toUpperCase() : 'G';
+                groupAvatar.textContent = firstLetter;
+                
+                // Включаем поле ввода
+                const messageInput = document.getElementById('group-message-input');
+                const sendButton = document.querySelector('#group-chat-section .send-button');
+                messageInput.disabled = false;
+                sendButton.disabled = false;
+                messageInput.focus();
+                
+                loadGroupMessages(groupId);
+                showSection('group-chat');
+                
+            } catch (error) {
+                console.error('Ошибка открытия группового чата:', error);
+                alert('Ошибка открытия группового чата: ' + error.message);
+            }
+        }
+
+        function loadGroupMessages(groupId) {
+            if (groupMessagesListener) groupMessagesListener();
+
+            const messagesContainer = document.getElementById('group-messages-container');
+            messagesContainer.innerHTML = '<p class="text-center">Загрузка сообщений...</p>';
+
+            groupMessagesListener = db.collection('groups').doc(groupId).collection('messages')
+                .orderBy('timestamp', 'asc')
+                .onSnapshot((snapshot) => {
+                    messagesContainer.innerHTML = '';
+                    
+                    if (snapshot.empty) {
+                        messagesContainer.innerHTML = '<p class="text-center">Нет сообщений. Начните общение!</p>';
+                        return;
+                    }
+
+                    snapshot.forEach(doc => {
+                        const message = doc.data();
+                        const messageElement = createGroupMessageElement(message, doc.id);
+                        messagesContainer.appendChild(messageElement);
+                    });
+
+                    // Автопрокрутка к последнему сообщению
+                    setTimeout(() => {
+                        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                    }, 100);
+                }, (error) => {
+                    console.error('Ошибка загрузки сообщений группы:', error);
+                    messagesContainer.innerHTML = '<p class="text-center">Ошибка загрузки сообщений</p>';
+                });
+        }
+
+        function createGroupMessageElement(message, messageId) {
+            const div = document.createElement('div');
+            const isSent = message.senderId === currentUser.uid;
+            const isEditing = editingMessageId === messageId;
+            div.className = `message ${isSent ? 'sent' : 'group'} ${isEditing ? 'editing' : ''}`;
+            
+            const time = message.timestamp ? formatTime(message.timestamp.toDate()) : 'только что';
+            
+            if (isEditing) {
+                div.innerHTML = `
+                    <input type="text" class="edit-input" value="${message.text}" id="edit-input-${messageId}">
+                    <div class="edit-actions">
+                        <button class="edit-btn edit-save" onclick="saveGroupMessageEdit('${messageId}')">Сохранить</button>
+                        <button class="edit-btn edit-cancel" onclick="cancelMessageEdit()">Отмена</button>
+                    </div>
+                    <div class="message-time">${time}</div>
+                `;
+            } else {
+                const senderName = message.senderName || 'Неизвестный';
+                div.innerHTML = `
+                    ${!isSent ? `<div class="message-sender">${senderName}</div>` : ''}
+                    <div class="message-text">${message.text}</div>
+                    <div class="message-actions">
+                        ${isSent ? `
+                            <button class="message-action-btn edit" onclick="editGroupMessage('${messageId}', '${message.text}')">✏️</button>
+                            <button class="message-action-btn delete" onclick="deleteGroupMessage('${messageId}')">🗑️</button>
+                        ` : ''}
+                    </div>
+                    <div class="message-time">${time}</div>
+                `;
+            }
+            
+            return div;
+        }
+
+        async function sendGroupMessage() {
+            const input = document.getElementById('group-message-input');
+            const text = input.value.trim();
+
+            if (!text || !currentGroup) return;
+
+            try {
+                await db.collection('groups').doc(currentGroup.id).collection('messages').add({
+                    text: text,
+                    senderId: currentUser.uid,
+                    senderName: currentUserData.nickname,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                // Очищаем поле ввода и сбрасываем высоту
+                input.value = '';
+                input.style.height = 'auto';
+                input.focus();
+                
+            } catch (error) {
+                console.error('Ошибка отправки сообщения в группу:', error);
+                alert('Ошибка отправки сообщения: ' + error.message);
+            }
+        }
+
+        function showGroupSettings() {
+            if (!currentGroup) return;
+            
+            const modal = document.getElementById('group-settings-modal');
+            const firstLetter = currentGroup.name ? currentGroup.name.charAt(0).toUpperCase() : 'G';
+            
+            document.getElementById('group-settings-avatar').textContent = firstLetter;
+            document.getElementById('group-settings-name').textContent = currentGroup.name;
+            document.getElementById('group-settings-description').textContent = currentGroup.description || 'Нет описания';
+            document.getElementById('group-settings-key').textContent = currentGroup.groupKey;
+            
+            loadGroupMembers();
+            modal.classList.add('active');
+        }
+
+        function closeGroupSettings() {
+            const modal = document.getElementById('group-settings-modal');
+            modal.classList.remove('active');
+        }
+
+        async function loadGroupMembers() {
+            if (!currentGroup) return;
+
+            const membersList = document.getElementById('group-members-list');
+            membersList.innerHTML = '<p class="text-center">Загрузка...</p>';
+
+            try {
+                membersList.innerHTML = '';
+                
+                for (const memberId of currentGroup.members) {
+                    const memberData = currentGroup.memberData[memberId];
+                    if (memberData) {
+                        const memberElement = document.createElement('div');
+                        memberElement.className = 'member-item';
+                        const roleClass = memberData.role === 'owner' ? 'owner' : '';
+                        memberElement.innerHTML = `
+                            <div class="avatar" style="background: ${memberData.role === 'owner' ? 'var(--group-color)' : 'var(--accent-color)'}">${memberData.nickname ? memberData.nickname.charAt(0).toUpperCase() : 'U'}</div>
+                            <div>
+                                <strong>${memberData.nickname}</strong>
+                                <p>@${memberData.username}</p>
+                            </div>
+                            <div class="member-role ${roleClass}">${memberData.role === 'owner' ? 'Создатель' : 'Участник'}</div>
+                        `;
+                        membersList.appendChild(memberElement);
+                    }
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки участников:', error);
+                membersList.innerHTML = '<p class="text-center">Ошибка загрузки</p>';
+            }
+        }
+
+        function copyGroupKey() {
+            const key = document.getElementById('group-settings-key').textContent;
+            navigator.clipboard.writeText(key).then(() => {
+                alert('Ключ скопирован в буфер обмена!');
+            });
         }
 
         // ПРОСТАЯ СИСТЕМА - ВСЕ ПОЛЬЗОВАТЕЛИ В МОИХ ЧАТАХ
@@ -2133,7 +2798,7 @@
                 btn.classList.remove('active');
             });
             
-            if (sectionName !== 'chat') {
+            if (sectionName !== 'chat' && sectionName !== 'group-chat') {
                 const navBtn = document.querySelector(`.nav-btn[onclick="showSection('${sectionName}')"]`);
                 if (navBtn) navBtn.classList.add('active');
             }

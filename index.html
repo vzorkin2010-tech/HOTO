@@ -439,33 +439,40 @@
             margin-bottom: 20px;
         }
 
-        /* БЕЛАЯ КНОПКА НАЗАД */
+        /* ПРОСТАЯ СТРЕЛОчка НАЗАД */
         .btn-back {
-            background: white;
-            color: var(--text-primary);
-            border: 2px solid var(--border-color);
-            font-size: 18px;
+            background: none;
+            border: none;
+            font-size: 24px;
             cursor: pointer;
-            padding: 10px;
-            border-radius: var(--border-radius);
+            padding: 8px;
+            border-radius: 50%;
             transition: var(--transition);
-            min-width: 44px;
-            min-height: 44px;
+            min-width: 40px;
+            min-height: 40px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: bold;
+            color: var(--text-primary);
         }
 
         .btn-back:hover {
             background: var(--secondary-bg);
-            border-color: var(--accent-color);
         }
 
         .chat-user-info {
             display: flex;
             align-items: center;
             gap: 12px;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: var(--border-radius);
+            transition: var(--transition);
+            flex: 1;
+        }
+
+        .chat-user-info:hover {
+            background: var(--secondary-bg);
         }
 
         .messages-container {
@@ -596,6 +603,114 @@
             opacity: 0.7;
         }
 
+        /* МОДАЛЬНОЕ ОКНО ПРОФИЛЯ */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease-out;
+            padding: var(--mobile-padding);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--primary-bg);
+            padding: 24px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            max-width: 400px;
+            width: 100%;
+            animation: modalSlideIn 0.3s ease-out;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-30px) scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            transition: var(--transition);
+            color: var(--text-primary);
+        }
+
+        .modal-close:hover {
+            background: var(--secondary-bg);
+        }
+
+        .profile-preview {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .profile-info {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .profile-field {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .profile-label {
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .profile-value {
+            font-size: 16px;
+            color: var(--text-primary);
+        }
+
+        .profile-bio {
+            padding: 12px;
+            background: var(--secondary-bg);
+            border-radius: var(--border-radius);
+            min-height: 60px;
+        }
+
         @media (max-width: 768px) {
             .main-container {
                 flex-direction: column;
@@ -676,6 +791,10 @@
                 min-height: 44px;
                 min-width: 70px;
                 padding: 12px 16px;
+            }
+
+            .modal-content {
+                padding: 20px;
             }
         }
 
@@ -870,8 +989,8 @@
                     <!-- Секция чата -->
                     <div id="chat-section" class="content-section">
                         <div class="chat-header">
-                            <button onclick="showSection('chats')" class="btn-back">← Назад</button>
-                            <div class="chat-user-info">
+                            <button onclick="showSection('chats')" class="btn-back">←</button>
+                            <div class="chat-user-info" onclick="showUserProfile()">
                                 <div id="chat-avatar" class="avatar">U</div>
                                 <span id="chat-username">Пользователь</span>
                             </div>
@@ -900,6 +1019,33 @@
         </div>
     </div>
 
+    <!-- Модальное окно профиля собеседника -->
+    <div id="user-profile-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Профиль пользователя</h3>
+                <button class="modal-close" onclick="closeUserProfile()">×</button>
+            </div>
+            <div class="profile-preview">
+                <div id="modal-avatar" class="avatar-large">U</div>
+            </div>
+            <div class="profile-info">
+                <div class="profile-field">
+                    <div class="profile-label">Никнейм</div>
+                    <div id="modal-nickname" class="profile-value">Неизвестно</div>
+                </div>
+                <div class="profile-field">
+                    <div class="profile-label">Username</div>
+                    <div id="modal-username" class="profile-value">@unknown</div>
+                </div>
+                <div class="profile-field">
+                    <div class="profile-label">Описание</div>
+                    <div id="modal-bio" class="profile-bio">Нет описания</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // === FIREBASE КОНФИГУРАЦИЯ ===
         const firebaseConfig = {
@@ -921,6 +1067,7 @@
         let currentUser = null;
         let currentUserData = null;
         let currentChat = null;
+        let currentChatUser = null;
         let usersCache = new Map();
         let chatsListener = null;
         let messagesListener = null;
@@ -950,7 +1097,7 @@
                     currentUser = user;
                     await loadUserProfile(user.uid);
                     showMainApp();
-                    loadAllUsers(); // Загружаем всех пользователей
+                    loadAllUsers();
                 } else {
                     showAuth();
                 }
@@ -980,6 +1127,13 @@
             document.getElementById('message-input').addEventListener('input', function() {
                 this.style.height = 'auto';
                 this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+            });
+
+            // Закрытие модального окна по клику на фон
+            document.getElementById('user-profile-modal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeUserProfile();
+                }
             });
         }
 
@@ -1302,11 +1456,11 @@
 
         async function openChat(chatId, otherUserId) {
             currentChat = { id: chatId, otherUserId: otherUserId };
+            currentChatUser = await getUserData(otherUserId);
             
-            const user = await getUserData(otherUserId);
-            document.getElementById('chat-username').textContent = user.nickname;
+            document.getElementById('chat-username').textContent = currentChatUser.nickname;
             const chatAvatar = document.getElementById('chat-avatar');
-            const firstLetter = user.nickname ? user.nickname.charAt(0).toUpperCase() : 'U';
+            const firstLetter = currentChatUser.nickname ? currentChatUser.nickname.charAt(0).toUpperCase() : 'U';
             chatAvatar.textContent = firstLetter;
             
             // Включаем поле ввода
@@ -1318,6 +1472,26 @@
             
             loadMessages(chatId);
             showSection('chat');
+        }
+
+        // ПОКАЗАТЬ ПРОФИЛЬ СОБЕСЕДНИКА
+        async function showUserProfile() {
+            if (!currentChatUser) return;
+            
+            const modal = document.getElementById('user-profile-modal');
+            const firstLetter = currentChatUser.nickname ? currentChatUser.nickname.charAt(0).toUpperCase() : 'U';
+            
+            document.getElementById('modal-avatar').textContent = firstLetter;
+            document.getElementById('modal-nickname').textContent = currentChatUser.nickname || 'Неизвестно';
+            document.getElementById('modal-username').textContent = '@' + (currentChatUser.username || 'unknown');
+            document.getElementById('modal-bio').textContent = currentChatUser.bio || 'Нет описания';
+            
+            modal.classList.add('active');
+        }
+
+        function closeUserProfile() {
+            const modal = document.getElementById('user-profile-modal');
+            modal.classList.remove('active');
         }
 
         function loadMessages(chatId) {

@@ -367,6 +367,53 @@
         .nav-badge {
             animation: pulse 0.5s ease-in-out;
         }
+
+        /* Стили для бана */
+        .banned-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--primary-bg);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            padding: 20px;
+        }
+
+        .banned-container.active {
+            display: flex;
+        }
+
+        .banned-message {
+            text-align: center;
+            max-width: 500px;
+            padding: 40px;
+            background: var(--secondary-bg);
+            border-radius: var(--border-radius);
+            border: 2px solid var(--error-color);
+        }
+
+        .banned-message h2 {
+            color: var(--error-color);
+            margin-bottom: 20px;
+            font-size: 2rem;
+        }
+
+        .banned-message p {
+            margin-bottom: 10px;
+            color: var(--text-primary);
+        }
+
+        .ban-reason {
+            background: rgba(220, 53, 69, 0.1);
+            padding: 15px;
+            border-radius: var(--border-radius);
+            margin: 20px 0;
+            border-left: 4px solid var(--error-color);
+        }
     </style>
     
     <script>
@@ -1581,6 +1628,19 @@
     </style>
 </head>
 <body>
+    <!-- Экран бана -->
+    <div id="banned-section" class="banned-container">
+        <div class="banned-message">
+            <h2>🚫 Ваша учетная запись заблокирована</h2>
+            <p>Ваш аккаунт был заблокирован администратором.</p>
+            <div class="ban-reason">
+                <strong>Причина блокировки:</strong>
+                <p id="ban-reason-text">Не указана</p>
+            </div>
+            <p>По всем вопросам обращайтесь в поддержку.</p>
+        </div>
+    </div>
+
     <div id="app">
         <!-- Секция аутентификации -->
         <div id="auth-section" class="section active">
@@ -1820,6 +1880,17 @@
         function initAuth() {
             auth.onAuthStateChanged(async (user) => {
                 if (user) {
+                    // Проверяем не забанен ли пользователь
+                    const userDoc = await db.collection('users').doc(user.uid).get();
+                    if (userDoc.exists) {
+                        const userData = userDoc.data();
+                        if (userData.banned) {
+                            // Показываем экран бана
+                            showBannedScreen(userData.banReason);
+                            return;
+                        }
+                    }
+                    
                     currentUser = user;
                     await loadUserProfile(user.uid);
                     showMainApp();
@@ -1828,6 +1899,12 @@
                     showAuth();
                 }
             });
+        }
+
+        function showBannedScreen(reason) {
+            document.getElementById('banned-section').classList.add('active');
+            document.getElementById('app').classList.add('hidden');
+            document.getElementById('ban-reason-text').textContent = reason || 'Причина не указана';
         }
 
         function initEventListeners() {
@@ -1930,7 +2007,7 @@
 
                 usersQuery.forEach(doc => {
                     const user = doc.data();
-                    if (doc.id !== currentUser.uid) {
+                    if (doc.id !== currentUser.uid && !user.banned) {
                         const userElement = createUserElement(user, doc.id);
                         chatsContainer.appendChild(userElement);
                     }
@@ -1969,7 +2046,7 @@
                 
                 usersQuery.forEach(doc => {
                     const user = doc.data();
-                    if (doc.id !== currentUser.uid) {
+                    if (doc.id !== currentUser.uid && !user.banned) {
                         const userElement = createUserElement(user, doc.id);
                         resultsContainer.appendChild(userElement);
                         foundUsers = true;
@@ -2528,7 +2605,9 @@
                     nickname: email.split('@')[0],
                     username: generateUsername(email),
                     bio: '',
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    banned: false,
+                    banReason: ''
                 });
                 
                 alert('Регистрация успешна!');

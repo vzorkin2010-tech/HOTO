@@ -311,6 +311,7 @@
             cursor: pointer;
             padding: 4px;
             border-radius: 50%;
+            color: var(--text-secondary);
             transition: var(--transition);
             flex-shrink: 0;
             width: 24px;
@@ -1709,7 +1710,7 @@
                     <div id="chat-section" class="content-section">
                         <div class="chat-header">
                             <button onclick="showSection('chats')" class="btn-back">←</button>
-                            <div class="chat-user-info" id="chat-user-info">
+                            <div class="chat-user-info" onclick="showUserProfile()">
                                 <div id="chat-avatar" class="avatar">U</div>
                                 <span id="chat-username">Пользователь</span>
                             </div>
@@ -1797,12 +1798,17 @@
         let searchTimeout = null;
         let editingMessageId = null;
 
+        // === СИСТЕМА УВЕДОМЛЕНИЙ ===
+        let notificationListener = null;
+        let currentNotifications = new Map();
+
         // Инициализация приложения
         document.addEventListener('DOMContentLoaded', function() {
             initTheme();
             initAuth();
             initEventListeners();
             initFileUpload();
+            createNotificationsContainer();
         });
 
         function initTheme() {
@@ -1823,6 +1829,7 @@
                     await loadUserProfile(user.uid);
                     showMainApp();
                     loadAllUsers();
+                    initNotifications();
                 } else {
                     showAuth();
                 }
@@ -1913,6 +1920,511 @@
                     e.target.value = '';
                 }
             });
+        }
+
+        // === СИСТЕМА УВЕДОМЛЕНИЙ ===
+
+        // Инициализация системы уведомлений
+        function initNotifications() {
+            if (notificationListener) return;
+            
+            notificationListener = db.collection('chats')
+                .where('participants', 'array-contains', currentUser.uid)
+                .onSnapshot(async (snapshot) => {
+                    for (const change of snapshot.docChanges()) {
+                        if (change.type === 'modified') {
+                            await checkForNewMessages(change.doc);
+                        }
+                    }
+                });
+        }
+
+        // Проверка новых сообщений
+        async function checkForNewMessages(chatDoc) {
+            const chatData = chatDoc.data();
+            const chatId = chatDoc.id;
+            
+            // Получаем последнее сообщение
+            const messagesQuery = await db.collection('chats').doc(chatId).collection('messages')
+                .orderBy('timestamp', 'desc')
+                .limit(1)
+                .get();
+            
+            if (messagesQuery.empty) return;
+            
+            const lastMessage = messagesQuery.docs[0].data();
+            const lastMessageId = messagesQuery.docs[0].id;
+            
+            // Проверяем, что сообщение новое и не от текущего пользователя
+            if (lastMessage.senderId === currentUser.uid) return;
+            
+            // Проверяем, что пользователь не в этом чате
+            if (currentChat && currentChat.id === chatId) return;
+            
+            // Проверяем, не показывали ли уже это уведомление
+            if (currentNotifications.has(chatId) && currentNotifications.get(chatId) === lastMessageId) {
+                return;
+            }
+            
+            // Сохраняем ID последнего сообщения для этого чата
+            currentNotifications.set(chatId, lastMessageId);
+            
+            // Получаем информацию об отправителе
+            const senderData = await getUserData(lastMessage.senderId);
+            
+            // Показываем уведомление
+            showMessageNotification(chatId, senderData, lastMessage);
+        }
+
+        // Показать уведомление о новом сообщении
+        function showMessageNotification(chatId, senderData, message) {
+            // Создаем элемент уведомления
+            const notification = document.createElement('div');
+            notification.className = 'message-notification';
+            notification.setAttribute('data-chat-id', chatId);
+            
+            const firstLetter = senderData.nickname ? senderData.nickname.charAt(0).toUpperCase() : 'U';
+            const messageText = message.text 
+                ? (message.text.length > 50 ? message.text.substring(0, 50) + '...' : message.text)
+                : `Файл: ${message.fileName || 'файл'}`;
+            
+            notification.innerHTML = `
+                <div class="notification-content">
+                    <div class="notification-avatar">${firstLetter}</div>
+                    <div class="notification-info">
+                        <div class="notification-sender">${senderData.nickname}</div>
+                        <div class="notification-message">${messageText}</div>
+                        <div class="notification-time">${formatTime(new Date())}</div>
+                    </div>
+                    <button class="notification-close" onclick="closeNotification('${chatId}')">×</button>
+                </div>
+            `;
+            
+            // Добавляем обработчик клика
+            notification.addEventListener('click', (e) => {
+                if (!e.target.classList.contains('notification-close')) {
+                    goToChatFromNotification(chatId);
+                }
+            });
+            
+            // Добавляем в контейнер уведомлений
+            const container = document.getElementById('notifications-container');
+            container.appendChild(notification);
+            
+            // Анимация появления
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 100);
+            
+            // Автоматическое скрытие через 5 секунд
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    closeNotification(chatId);
+                }
+            }, 5000);
+            
+            // Воспроизводим звук уведомления
+            playNotificationSound();
+            
+            // Обновляем badge на вкладке чатов
+            updateChatsBadge();
+        }
+
+        // Создать контейнер для уведомлений
+        function createNotificationsContainer() {
+            if (!document.getElementById('notifications-container')) {
+                const container = document.createElement('div');
+                container.id = 'notifications-container';
+                container.className = 'notifications-container';
+                document.body.appendChild(container);
+            }
+        }
+
+        // Закрыть уведомление
+        function closeNotification(chatId) {
+            const notification = document.querySelector(`.message-notification[data-chat-id="${chatId}"]`);
+            if (notification) {
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                        updateChatsBadge();
+                    }
+                }, 300);
+            }
+        }
+
+        // Перейти в чат по клику на уведомление
+        function goToChatFromNotification(chatId) {
+            closeNotification(chatId);
+            openChatDirectly(chatId);
+        }
+
+        // Воспроизведение звука уведомления
+        function playNotificationSound() {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.value = 800;
+                oscillator.type = 'sine';
+                
+                gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+                gainNode.gain.linearRampToValueAtTime(0.1, audioContext.currentTime + 0.01);
+                gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.3);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.3);
+            } catch (error) {
+                console.log('Звук уведомлений не поддерживается');
+            }
+        }
+
+        // Обновить badge с количеством непрочитанных
+        function updateChatsBadge() {
+            const badge = document.getElementById('chats-badge');
+            const count = document.querySelectorAll('.message-notification').length;
+            
+            if (count > 0) {
+                if (!badge) {
+                    const navBtn = document.querySelector('.nav-btn[onclick="showSection(\'chats\')"]');
+                    if (navBtn) {
+                        const badgeElement = document.createElement('span');
+                        badgeElement.id = 'chats-badge';
+                        badgeElement.className = 'nav-badge';
+                        badgeElement.textContent = count;
+                        navBtn.appendChild(badgeElement);
+                    }
+                } else {
+                    badge.textContent = count;
+                }
+            } else if (badge) {
+                badge.remove();
+            }
+        }
+
+        // Очистка уведомлений при входе в чат
+        function clearChatNotifications(chatId) {
+            closeNotification(chatId);
+            updateChatsBadge();
+        }
+
+        // Прямое открытие чата по ID
+        async function openChatDirectly(chatId) {
+            try {
+                const chatDoc = await db.collection('chats').doc(chatId).get();
+                if (chatDoc.exists) {
+                    const chatData = chatDoc.data();
+                    const otherUserId = chatData.participants.find(id => id !== currentUser.uid);
+                    if (otherUserId) {
+                        openChat(chatId, otherUserId);
+                        showSection('chat');
+                    }
+                }
+            } catch (error) {
+                console.error('Ошибка открытия чата:', error);
+            }
+        }
+
+        async function handleFileUpload(files) {
+            if (!currentChat) {
+                alert('Сначала выберите чат!');
+                return;
+            }
+
+            try {
+                // Обрабатываем файлы последовательно
+                for (let file of files) {
+                    await uploadFile(file);
+                }
+            } catch (error) {
+                console.error('Ошибка обработки файлов:', error);
+            }
+        }
+
+        async function uploadFile(file) {
+            if (!currentChat) return;
+
+            try {
+                // Создаем временное сообщение о загрузке
+                const tempMessageId = 'temp_' + Date.now();
+                const messagesContainer = document.getElementById('messages-container');
+                
+                const tempMessageDiv = document.createElement('div');
+                tempMessageDiv.className = 'message sent';
+                tempMessageDiv.id = tempMessageId;
+                tempMessageDiv.innerHTML = `
+                    <div class="file-message">
+                        <div class="file-icon">📎</div>
+                        <div class="file-info">
+                            <div class="file-name">${file.name}</div>
+                            <div class="file-size">${formatFileSize(file.size)}</div>
+                            <div class="upload-progress">
+                                <div class="upload-progress-bar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="message-time">Загрузка...</div>
+                `;
+                messagesContainer.appendChild(tempMessageDiv);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+                // Генерируем уникальное имя файла
+                const fileExtension = file.name.split('.').pop();
+                const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExtension}`;
+                const filePath = `chats/${currentChat.id}/${fileName}`;
+                
+                // Загружаем файл в Firebase Storage
+                const storageRef = storage.ref(filePath);
+                const uploadTask = storageRef.put(file);
+
+                // Возвращаем промис для отслеживания завершения загрузки
+                return new Promise((resolve, reject) => {
+                    uploadTask.on('state_changed',
+                        (snapshot) => {
+                            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                            const progressBar = document.querySelector(`#${tempMessageId} .upload-progress-bar`);
+                            if (progressBar) {
+                                progressBar.style.width = progress + '%';
+                            }
+                        },
+                        (error) => {
+                            console.error('Ошибка загрузки файла:', error);
+                            document.getElementById(tempMessageId).innerHTML = `
+                                <div class="error-message">Ошибка загрузки: ${file.name}</div>
+                            `;
+                            setTimeout(() => {
+                                const element = document.getElementById(tempMessageId);
+                                if (element) element.remove();
+                            }, 3000);
+                            reject(error);
+                        },
+                        async () => {
+                            try {
+                                // Загрузка завершена
+                                const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
+                                
+                                // Сохраняем информацию о файле в Firestore
+                                await db.collection('chats').doc(currentChat.id).collection('messages').add({
+                                    type: 'file',
+                                    fileName: file.name,
+                                    fileURL: downloadURL,
+                                    fileSize: file.size,
+                                    fileType: file.type,
+                                    senderId: currentUser.uid,
+                                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                                });
+
+                                // Обновляем последнее сообщение в чате
+                                await db.collection('chats').doc(currentChat.id).update({
+                                    lastMessage: `Файл: ${file.name}`,
+                                    lastMessageTime: firebase.firestore.FieldValue.serverTimestamp()
+                                });
+
+                                // Удаляем временное сообщение
+                                const tempElement = document.getElementById(tempMessageId);
+                                if (tempElement) {
+                                    tempElement.remove();
+                                }
+                                
+                                resolve();
+                            } catch (error) {
+                                console.error('Ошибка сохранения информации о файле:', error);
+                                reject(error);
+                            }
+                        }
+                    );
+                });
+
+            } catch (error) {
+                console.error('Ошибка загрузки файла:', error);
+                alert('Ошибка загрузки файла: ' + error.message);
+                throw error;
+            }
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeButton(newTheme);
+        }
+
+        function showAuth() {
+            document.getElementById('auth-section').classList.add('active');
+            document.getElementById('main-section').classList.remove('active');
+            showForm('login');
+        }
+
+        function showMainApp() {
+            document.getElementById('auth-section').classList.remove('active');
+            document.getElementById('main-section').classList.add('active');
+        }
+
+        function showForm(formType) {
+            document.getElementById('login-form').classList.remove('active');
+            document.getElementById('register-form').classList.remove('active');
+            document.getElementById(formType + '-form').classList.add('active');
+        }
+
+        async function register() {
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+            const confirmPassword = document.getElementById('register-confirm').value;
+
+            if (!email || !password) {
+                alert('Заполните все поля');
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                alert('Пароли не совпадают!');
+                return;
+            }
+
+            if (password.length < 6) {
+                alert('Пароль должен содержать минимум 6 символов');
+                return;
+            }
+
+            try {
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                const user = userCredential.user;
+                
+                await db.collection('users').doc(user.uid).set({
+                    email: email,
+                    nickname: email.split('@')[0],
+                    username: generateUsername(email),
+                    bio: '',
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                alert('Регистрация успешна!');
+            } catch (error) {
+                alert('Ошибка регистрации: ' + error.message);
+            }
+        }
+
+        function generateUsername(email) {
+            return email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '_') + '_' + Math.random().toString(36).substr(2, 5);
+        }
+
+        async function login() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+
+            if (!email || !password) {
+                alert('Заполните все поля');
+                return;
+            }
+
+            try {
+                await auth.signInWithEmailAndPassword(email, password);
+            } catch (error) {
+                alert('Ошибка входа: ' + error.message);
+            }
+        }
+
+        async function logout() {
+            if (chatsListener) chatsListener();
+            if (messagesListener) messagesListener();
+            if (notificationListener) {
+                notificationListener();
+                notificationListener = null;
+            }
+            
+            currentNotifications.clear();
+            document.querySelectorAll('.message-notification').forEach(notification => {
+                notification.remove();
+            });
+            
+            await auth.signOut();
+        }
+
+        async function loadUserProfile(uid) {
+            try {
+                const doc = await db.collection('users').doc(uid).get();
+                if (doc.exists) {
+                    currentUserData = doc.data();
+                    updateProfileUI();
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки профиля:', error);
+            }
+        }
+
+        function updateProfileUI() {
+            if (!currentUserData) return;
+
+            // Обновляем аватары с первой буквой никнейма
+            const userAvatar = document.getElementById('user-avatar');
+            const profileAvatar = document.getElementById('profile-avatar');
+            const firstLetter = currentUserData.nickname ? currentUserData.nickname.charAt(0).toUpperCase() : 'U';
+            
+            userAvatar.textContent = firstLetter;
+            profileAvatar.textContent = firstLetter;
+
+            document.getElementById('user-nickname').textContent = currentUserData.nickname;
+            document.getElementById('profile-nickname').value = currentUserData.nickname;
+            document.getElementById('profile-username').value = currentUserData.username;
+            document.getElementById('profile-bio').value = currentUserData.bio || '';
+        }
+
+        async function updateProfile() {
+            const nickname = document.getElementById('profile-nickname').value.trim();
+            const username = document.getElementById('profile-username').value.trim();
+            const bio = document.getElementById('profile-bio').value.trim();
+
+            if (!nickname || !username) {
+                alert('Заполните обязательные поля');
+                return;
+            }
+
+            if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+                alert('Username может содержать только английские буквы, цифры и нижние подчеркивания');
+                return;
+            }
+
+            try {
+                if (username !== currentUserData.username) {
+                    const usernameQuery = await db.collection('users')
+                        .where('username', '==', username)
+                        .get();
+                    
+                    if (!usernameQuery.empty) {
+                        alert('Этот username уже занят');
+                        return;
+                    }
+                }
+
+                await db.collection('users').doc(currentUser.uid).update({
+                    nickname: nickname,
+                    username: username,
+                    bio: bio
+                });
+
+                currentUserData.nickname = nickname;
+                currentUserData.username = username;
+                currentUserData.bio = bio;
+                
+                updateProfileUI();
+                alert('Профиль успешно обновлен!');
+            } catch (error) {
+                alert('Ошибка обновления профиля: ' + error.message);
+            }
         }
 
         // ПРОСТАЯ СИСТЕМА - ВСЕ ПОЛЬЗОВАТЕЛИ В МОИХ ЧАТАХ
@@ -2071,26 +2583,22 @@
         }
 
         async function openChat(chatId, otherUserId) {
+            // Очищаем уведомления для этого чата
+            clearChatNotifications(chatId);
+            
             currentChat = { id: chatId, otherUserId: otherUserId };
             currentChatUser = await getUserData(otherUserId);
             
             document.getElementById('chat-username').textContent = currentChatUser.nickname;
             const chatAvatar = document.getElementById('chat-avatar');
             const firstLetter = currentChatUser.nickname ? currentChatUser.nickname.charAt(0).toUpperCase() : 'U';
-            chatAvatar.className = 'avatar';
             chatAvatar.textContent = firstLetter;
-            
-            // Показываем кнопку профиля для обычных чатов
-            const chatUserInfo = document.getElementById('chat-user-info');
-            chatUserInfo.style.display = 'flex';
-            chatUserInfo.setAttribute('onclick', 'showUserProfile()');
             
             // Включаем поле ввода
             const messageInput = document.getElementById('message-input');
             const sendButton = document.querySelector('.send-button');
             messageInput.disabled = false;
             sendButton.disabled = false;
-            messageInput.placeholder = 'Введите сообщение...';
             messageInput.focus();
             
             loadMessages(chatId);
@@ -2104,8 +2612,6 @@
             const modal = document.getElementById('user-profile-modal');
             const firstLetter = currentChatUser.nickname ? currentChatUser.nickname.charAt(0).toUpperCase() : 'U';
             
-            document.getElementById('modal-avatar').className = 'avatar-large';
-            document.getElementById('modal-avatar').style.background = '';
             document.getElementById('modal-avatar').textContent = firstLetter;
             document.getElementById('modal-nickname').textContent = currentChatUser.nickname || 'Неизвестно';
             document.getElementById('modal-username').textContent = '@' + (currentChatUser.username || 'unknown');
@@ -2159,26 +2665,18 @@
             div.className = `message ${isSent ? 'sent' : 'received'} ${isEditing ? 'editing' : ''}`;
             
             const time = message.timestamp ? formatTime(message.timestamp.toDate()) : 'только что';
-            const editedBadge = message.edited ? ' <span style="font-size: 10px; opacity: 0.7;">(изменено)</span>' : '';
             
-            if (isEditing && isSent) {
-                // Показываем форму редактирования только для своих сообщений
+            if (isEditing) {
                 div.innerHTML = `
                     <input type="text" class="edit-input" value="${message.text}" id="edit-input-${messageId}">
                     <div class="edit-actions">
                         <button class="edit-btn edit-save" onclick="saveMessageEdit('${messageId}')">Сохранить</button>
                         <button class="edit-btn edit-cancel" onclick="cancelMessageEdit()">Отмена</button>
                     </div>
-                    <div class="message-time">${time}${editedBadge}</div>
+                    <div class="message-time">${time}</div>
                 `;
             } else if (message.type === 'file') {
                 // Сообщение с файлом
-                const actions = isSent ? `
-                    <div class="message-actions">
-                        <button class="message-action-btn delete" onclick="deleteMessage('${messageId}')">🗑️</button>
-                    </div>
-                ` : '';
-                
                 div.innerHTML = `
                     <div class="file-message" onclick="openFile('${message.fileURL}', '${message.fileName}')">
                         <div class="file-icon">${getFileIcon(message.fileType)}</div>
@@ -2187,22 +2685,24 @@
                             <div class="file-size">${formatFileSize(message.fileSize)}</div>
                         </div>
                     </div>
-                    ${actions}
-                    <div class="message-time">${time}${editedBadge}</div>
+                    <div class="message-actions">
+                        ${isSent ? `
+                            <button class="message-action-btn delete" onclick="deleteMessage('${messageId}')">🗑️</button>
+                        ` : ''}
+                    </div>
+                    <div class="message-time">${time}</div>
                 `;
             } else {
                 // Текстовое сообщение
-                const actions = isSent ? `
-                    <div class="message-actions">
-                        <button class="message-action-btn edit" onclick="editMessage('${messageId}', '${message.text}')">✏️</button>
-                        <button class="message-action-btn delete" onclick="deleteMessage('${messageId}')">🗑️</button>
-                    </div>
-                ` : '';
-                
                 div.innerHTML = `
                     <div class="message-text">${message.text || ''}</div>
-                    ${actions}
-                    <div class="message-time">${time}${editedBadge}</div>
+                    <div class="message-actions">
+                        ${isSent ? `
+                            <button class="message-action-btn edit" onclick="editMessage('${messageId}', '${message.text}')">✏️</button>
+                            <button class="message-action-btn delete" onclick="deleteMessage('${messageId}')">🗑️</button>
+                        ` : ''}
+                    </div>
+                    <div class="message-time">${time}</div>
                 `;
             }
             
@@ -2224,155 +2724,13 @@
             window.open(url, '_blank');
         }
 
-        async function handleFileUpload(files) {
-            if (!currentChat) {
-                alert('Сначала выберите чат!');
+        // УДАЛЕНИЕ СООБЩЕНИЯ
+        async function deleteMessage(messageId) {
+            if (!currentChat || !confirm('Вы уверены, что хотите удалить это сообщение?')) {
                 return;
             }
 
             try {
-                // Обрабатываем файлы последовательно
-                for (let file of files) {
-                    await uploadFile(file);
-                }
-            } catch (error) {
-                console.error('Ошибка обработки файлов:', error);
-            }
-        }
-
-        async function uploadFile(file) {
-            if (!currentChat) return;
-
-            try {
-                // Создаем временное сообщение о загрузке
-                const tempMessageId = 'temp_' + Date.now();
-                const messagesContainer = document.getElementById('messages-container');
-                
-                const tempMessageDiv = document.createElement('div');
-                tempMessageDiv.className = 'message sent';
-                tempMessageDiv.id = tempMessageId;
-                tempMessageDiv.innerHTML = `
-                    <div class="file-message">
-                        <div class="file-icon">📎</div>
-                        <div class="file-info">
-                            <div class="file-name">${file.name}</div>
-                            <div class="file-size">${formatFileSize(file.size)}</div>
-                            <div class="upload-progress">
-                                <div class="upload-progress-bar" style="width: 0%"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="message-time">Загрузка...</div>
-                `;
-                messagesContainer.appendChild(tempMessageDiv);
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
-
-                // Генерируем уникальное имя файла
-                const fileExtension = file.name.split('.').pop();
-                const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExtension}`;
-                const filePath = `chats/${currentChat.id}/${fileName}`;
-                
-                // Загружаем файл в Firebase Storage
-                const storageRef = storage.ref(filePath);
-                const uploadTask = storageRef.put(file);
-
-                // Возвращаем промис для отслеживания завершения загрузки
-                return new Promise((resolve, reject) => {
-                    uploadTask.on('state_changed',
-                        (snapshot) => {
-                            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                            const progressBar = document.querySelector(`#${tempMessageId} .upload-progress-bar`);
-                            if (progressBar) {
-                                progressBar.style.width = progress + '%';
-                            }
-                        },
-                        (error) => {
-                            console.error('Ошибка загрузки файла:', error);
-                            document.getElementById(tempMessageId).innerHTML = `
-                                <div class="error-message">Ошибка загрузки: ${file.name}</div>
-                            `;
-                            setTimeout(() => {
-                                const element = document.getElementById(tempMessageId);
-                                if (element) element.remove();
-                            }, 3000);
-                            reject(error);
-                        },
-                        async () => {
-                            try {
-                                // Загрузка завершена
-                                const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
-                                
-                                // Сохраняем информацию о файле в Firestore
-                                await db.collection('chats').doc(currentChat.id).collection('messages').add({
-                                    type: 'file',
-                                    fileName: file.name,
-                                    fileURL: downloadURL,
-                                    fileSize: file.size,
-                                    fileType: file.type,
-                                    senderId: currentUser.uid,
-                                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                                });
-
-                                // Обновляем последнее сообщение в чате
-                                await db.collection('chats').doc(currentChat.id).update({
-                                    lastMessage: `Файл: ${file.name}`,
-                                    lastMessageTime: firebase.firestore.FieldValue.serverTimestamp()
-                                });
-
-                                // Удаляем временное сообщение
-                                const tempElement = document.getElementById(tempMessageId);
-                                if (tempElement) {
-                                    tempElement.remove();
-                                }
-                                
-                                resolve();
-                            } catch (error) {
-                                console.error('Ошибка сохранения информации о файле:', error);
-                                reject(error);
-                            }
-                        }
-                    );
-                });
-
-            } catch (error) {
-                console.error('Ошибка загрузки файла:', error);
-                alert('Ошибка загрузки файла: ' + error.message);
-                throw error;
-            }
-        }
-
-        function formatFileSize(bytes) {
-            if (bytes === 0) return '0 Bytes';
-            const k = 1024;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-        }
-
-        // УДАЛЕНИЕ СООБЩЕНИЯ - проверяем, что удаляем только свои сообщения
-        async function deleteMessage(messageId) {
-            if (!currentChat) return;
-            
-            try {
-                // Получаем сообщение для проверки отправителя
-                const messageDoc = await db.collection('chats').doc(currentChat.id).collection('messages').doc(messageId).get();
-                const message = messageDoc.data();
-                
-                if (!message) {
-                    alert('Сообщение не найдено');
-                    return;
-                }
-                
-                // Проверяем, что пользователь удаляет только свое сообщение
-                if (message.senderId !== currentUser.uid) {
-                    alert('Вы можете удалять только свои сообщения');
-                    return;
-                }
-                
-                if (!confirm('Вы уверены, что хотите удалить это сообщение?')) {
-                    return;
-                }
-
                 await db.collection('chats').doc(currentChat.id).collection('messages').doc(messageId).delete();
                 
                 // Обновляем последнее сообщение в чате если нужно
@@ -2401,18 +2759,8 @@
             }
         }
 
-        // РЕДАКТИРОВАНИЕ СООБЩЕНИЯ - проверяем, что редактируем только свои сообщения
+        // РЕДАКТИРОВАНИЕ СООБЩЕНИЯ
         function editMessage(messageId, currentText) {
-            // Проверяем, что сообщение принадлежит текущему пользователю
-            const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
-            if (!messageElement) return;
-            
-            // Проверяем по классу sent/received
-            if (!messageElement.classList.contains('sent')) {
-                alert('Вы можете редактировать только свои сообщения');
-                return;
-            }
-            
             editingMessageId = messageId;
             loadMessages(currentChat.id);
             
@@ -2427,12 +2775,6 @@
         }
 
         async function saveMessageEdit(messageId) {
-            // Дополнительная проверка на случай, если что-то пошло не так
-            if (editingMessageId !== messageId) {
-                alert('Ошибка редактирования');
-                return;
-            }
-
             const editInput = document.getElementById(`edit-input-${messageId}`);
             const newText = editInput.value.trim();
 
@@ -2442,17 +2784,6 @@
             }
 
             try {
-                // Дополнительная проверка прав перед сохранением
-                const messageDoc = await db.collection('chats').doc(currentChat.id).collection('messages').doc(messageId).get();
-                const message = messageDoc.data();
-                
-                if (!message || message.senderId !== currentUser.uid) {
-                    alert('У вас нет прав для редактирования этого сообщения');
-                    editingMessageId = null;
-                    loadMessages(currentChat.id);
-                    return;
-                }
-
                 await db.collection('chats').doc(currentChat.id).collection('messages').doc(messageId).update({
                     text: newText,
                     edited: true,
@@ -2525,169 +2856,6 @@
             if (diff < 86400000) return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
             
             return date.toLocaleDateString('ru-RU');
-        }
-
-        function toggleTheme() {
-            const currentTheme = document.documentElement.getAttribute('data-theme');
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            updateThemeButton(newTheme);
-        }
-
-        function showAuth() {
-            document.getElementById('auth-section').classList.add('active');
-            document.getElementById('main-section').classList.remove('active');
-            showForm('login');
-        }
-
-        function showMainApp() {
-            document.getElementById('auth-section').classList.remove('active');
-            document.getElementById('main-section').classList.add('active');
-        }
-
-        function showForm(formType) {
-            document.getElementById('login-form').classList.remove('active');
-            document.getElementById('register-form').classList.remove('active');
-            document.getElementById(formType + '-form').classList.add('active');
-        }
-
-        async function register() {
-            const email = document.getElementById('register-email').value;
-            const password = document.getElementById('register-password').value;
-            const confirmPassword = document.getElementById('register-confirm').value;
-
-            if (!email || !password) {
-                alert('Заполните все поля');
-                return;
-            }
-
-            if (password !== confirmPassword) {
-                alert('Пароли не совпадают!');
-                return;
-            }
-
-            if (password.length < 6) {
-                alert('Пароль должен содержать минимум 6 символов');
-                return;
-            }
-
-            try {
-                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-                const user = userCredential.user;
-                
-                await db.collection('users').doc(user.uid).set({
-                    email: email,
-                    nickname: email.split('@')[0],
-                    username: generateUsername(email),
-                    bio: '',
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                
-                alert('Регистрация успешна!');
-            } catch (error) {
-                alert('Ошибка регистрации: ' + error.message);
-            }
-        }
-
-        function generateUsername(email) {
-            return email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '_') + '_' + Math.random().toString(36).substr(2, 5);
-        }
-
-        async function login() {
-            const email = document.getElementById('login-email').value;
-            const password = document.getElementById('login-password').value;
-
-            if (!email || !password) {
-                alert('Заполните все поля');
-                return;
-            }
-
-            try {
-                await auth.signInWithEmailAndPassword(email, password);
-            } catch (error) {
-                alert('Ошибка входа: ' + error.message);
-            }
-        }
-
-        async function logout() {
-            if (chatsListener) chatsListener();
-            if (messagesListener) messagesListener();
-            
-            await auth.signOut();
-        }
-
-        async function loadUserProfile(uid) {
-            try {
-                const doc = await db.collection('users').doc(uid).get();
-                if (doc.exists) {
-                    currentUserData = doc.data();
-                    updateProfileUI();
-                }
-            } catch (error) {
-                console.error('Ошибка загрузки профиля:', error);
-            }
-        }
-
-        function updateProfileUI() {
-            if (!currentUserData) return;
-
-            // Обновляем аватары с первой буквой никнейма
-            const userAvatar = document.getElementById('user-avatar');
-            const profileAvatar = document.getElementById('profile-avatar');
-            const firstLetter = currentUserData.nickname ? currentUserData.nickname.charAt(0).toUpperCase() : 'U';
-            
-            userAvatar.textContent = firstLetter;
-            profileAvatar.textContent = firstLetter;
-
-            document.getElementById('user-nickname').textContent = currentUserData.nickname;
-            document.getElementById('profile-nickname').value = currentUserData.nickname;
-            document.getElementById('profile-username').value = currentUserData.username;
-            document.getElementById('profile-bio').value = currentUserData.bio || '';
-        }
-
-        async function updateProfile() {
-            const nickname = document.getElementById('profile-nickname').value.trim();
-            const username = document.getElementById('profile-username').value.trim();
-            const bio = document.getElementById('profile-bio').value.trim();
-
-            if (!nickname || !username) {
-                alert('Заполните обязательные поля');
-                return;
-            }
-
-            if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-                alert('Username может содержать только английские буквы, цифры и нижние подчеркивания');
-                return;
-            }
-
-            try {
-                if (username !== currentUserData.username) {
-                    const usernameQuery = await db.collection('users')
-                        .where('username', '==', username)
-                        .get();
-                    
-                    if (!usernameQuery.empty) {
-                        alert('Этот username уже занят');
-                        return;
-                    }
-                }
-
-                await db.collection('users').doc(currentUser.uid).update({
-                    nickname: nickname,
-                    username: username,
-                    bio: bio
-                });
-
-                currentUserData.nickname = nickname;
-                currentUserData.username = username;
-                currentUserData.bio = bio;
-                
-                updateProfileUI();
-                alert('Профиль успешно обновлен!');
-            } catch (error) {
-                alert('Ошибка обновления профиля: ' + error.message);
-            }
         }
 
         function showSection(sectionName) {

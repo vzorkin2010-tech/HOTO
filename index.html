@@ -1954,6 +1954,11 @@
         let editingMessageId = null;
         let notificationsListener = null;
         let activeNotifications = new Set();
+        
+        // ИСПРАВЛЕННАЯ СИСТЕМА: Отслеживание активного чата
+        let isUserInChat = false;
+        let lastOpenedChatId = null;
+        let lastMessageTimestamps = new Map();
 
         // Инициализация приложения
         document.addEventListener('DOMContentLoaded', function() {
@@ -1977,12 +1982,10 @@
         function initAuth() {
             auth.onAuthStateChanged(async (user) => {
                 if (user) {
-                    // Проверяем не забанен ли пользователь
                     const userDoc = await db.collection('users').doc(user.uid).get();
                     if (userDoc.exists) {
                         const userData = userDoc.data();
                         if (userData.banned) {
-                            // Показываем экран бана
                             showBannedScreen(userData.banReason);
                             return;
                         }
@@ -2020,6 +2023,8 @@
         function initNotifications() {
             if (!currentUser) return;
 
+            console.log('Инициализация системы уведомлений...');
+
             // Слушаем все чаты пользователя
             notificationsListener = db.collection('chats')
                 .where('participants', 'array-contains', currentUser.uid)
@@ -2029,29 +2034,57 @@
                             const chatData = change.doc.data();
                             const lastMessage = chatData.lastMessage;
                             const lastMessageTime = chatData.lastMessageTime;
+                            const lastMessageSender = chatData.lastMessageSender;
                             
-                            // Получаем информацию об отправителе
-                            const otherParticipantId = chatData.participants.find(id => id !== currentUser.uid);
-                            if (otherParticipantId) {
-                                const senderData = await getUserData(otherParticipantId);
+                            // Получаем время последнего сообщения
+                            const messageTime = lastMessageTime ? lastMessageTime.toDate().getTime() : 0;
+                            const lastKnownTime = lastMessageTimestamps.get(change.doc.id) || 0;
+                            
+                            // Проверяем условия для показа уведомления
+                            const shouldShowNotification = 
+                                lastMessage && 
+                                lastMessageTime && 
+                                lastMessageSender !== currentUser.uid && // Сообщение не от текущего пользователя
+                                !isUserInChat && // Пользователь НЕ находится в чате
+                                change.doc.id !== lastOpenedChatId && // Это не последний открытый чат
+                                messageTime > lastKnownTime; // Это новое сообщение
+
+                            console.log('Проверка уведомления:', {
+                                chatId: change.doc.id,
+                                lastMessage,
+                                lastMessageSender,
+                                isUserInChat,
+                                lastOpenedChatId,
+                                messageTime,
+                                lastKnownTime,
+                                shouldShowNotification
+                            });
+
+                            if (shouldShowNotification) {
+                                // Обновляем время последнего сообщения
+                                lastMessageTimestamps.set(change.doc.id, messageTime);
                                 
-                                // Проверяем, что сообщение новое и не от текущего пользователя
-                                if (lastMessage && lastMessageTime && 
-                                    (!currentChat || currentChat.id !== change.doc.id) &&
-                                    chatData.lastMessageSender !== currentUser.uid) {
-                                    
+                                // Получаем информацию об отправителе
+                                const otherParticipantId = chatData.participants.find(id => id !== currentUser.uid);
+                                if (otherParticipantId) {
+                                    const senderData = await getUserData(otherParticipantId);
                                     // Создаем уведомление
                                     showNotification(senderData, lastMessage, change.doc.id);
                                 }
+                            } else if (messageTime > 0) {
+                                // Обновляем время даже если уведомление не показывается
+                                lastMessageTimestamps.set(change.doc.id, messageTime);
                             }
                         }
                     });
+                }, (error) => {
+                    console.error('Ошибка в системе уведомлений:', error);
                 });
         }
 
         function showNotification(sender, message, chatId) {
             // Проверяем, не открыт ли уже этот чат
-            if (currentChat && currentChat.id === chatId) {
+            if (isUserInChat && currentChat && currentChat.id === chatId) {
                 return;
             }
 
@@ -2061,6 +2094,7 @@
             const notification = document.createElement('div');
             notification.className = 'message-notification';
             notification.id = notificationId;
+            notification.dataset.chatId = chatId;
             
             const firstLetter = sender.nickname ? sender.nickname.charAt(0).toUpperCase() : 'U';
             const isOfficial = sender.email === 'vzorkin2010@gmail.com' || sender.email === 'izbrannoe@gmail.com';
@@ -2095,10 +2129,16 @@
                 notification.classList.add('show');
             }, 10);
 
-            // Обработчик клика по уведомлению
+            // Обработчик клика по уведомлению - ПЕРЕХОД В ЧАТ
             notification.addEventListener('click', function(e) {
                 if (!e.target.classList.contains('notification-close')) {
-                    openChat(chatId, sender.uid || chatData.participants.find(id => id !== currentUser.uid));
+                    console.log('Клик по уведомлению, переход в чат:', chatId);
+                    // Находим пользователя для этого чата
+                    findUserForChat(chatId).then(userId => {
+                        if (userId) {
+                            openChat(chatId, userId);
+                        }
+                    });
                     closeNotification(notificationId);
                 }
             });
@@ -2109,6 +2149,22 @@
                     closeNotification(notificationId);
                 }
             }, 5000);
+
+            console.log('Показано уведомление для чата:', chatId);
+        }
+
+        // Функция для поиска пользователя в чате
+        async function findUserForChat(chatId) {
+            try {
+                const chatDoc = await db.collection('chats').doc(chatId).get();
+                if (chatDoc.exists) {
+                    const chatData = chatDoc.data();
+                    return chatData.participants.find(id => id !== currentUser.uid);
+                }
+            } catch (error) {
+                console.error('Ошибка поиска пользователя для чата:', error);
+            }
+            return null;
         }
 
         function closeNotification(notificationId) {
@@ -2378,9 +2434,29 @@
             }
         }
 
+        // ИСПРАВЛЕННАЯ ФУНКЦИЯ ОТКРЫТИЯ ЧАТА
         async function openChat(chatId, otherUserId) {
+            console.log('Открытие чата:', chatId, 'isUserInChat устанавливается в true');
+            
+            // Устанавливаем флаг, что пользователь находится в чате
+            isUserInChat = true;
+            lastOpenedChatId = chatId;
+            
             currentChat = { id: chatId, otherUserId: otherUserId };
             currentChatUser = await getUserData(otherUserId);
+            
+            // Обновляем время последнего сообщения для этого чата
+            try {
+                const chatDoc = await db.collection('chats').doc(chatId).get();
+                if (chatDoc.exists) {
+                    const chatData = chatDoc.data();
+                    if (chatData.lastMessageTime) {
+                        lastMessageTimestamps.set(chatId, chatData.lastMessageTime.toDate().getTime());
+                    }
+                }
+            } catch (error) {
+                console.error('Ошибка обновления времени сообщения:', error);
+            }
             
             // Проверяем, является ли пользователь официальным аккаунтом
             const isOfficial = currentChatUser.email === 'vzorkin2010@gmail.com' || currentChatUser.email === 'izbrannoe@gmail.com';
@@ -2843,6 +2919,32 @@
             document.getElementById(formType + '-form').classList.add('active');
         }
 
+        // ИСПРАВЛЕННАЯ ФУНКЦИЯ ПОКАЗА СЕКЦИИ
+        function showSection(sectionName) {
+            document.querySelectorAll('.content-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            document.getElementById(sectionName + '-section').classList.add('active');
+            
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            if (sectionName !== 'chat') {
+                // Когда пользователь выходит из чата
+                console.log('Выход из чата, isUserInChat устанавливается в false');
+                isUserInChat = false;
+                
+                const navBtn = document.querySelector(`.nav-btn[onclick="showSection('${sectionName}')"]`);
+                if (navBtn) navBtn.classList.add('active');
+            } else {
+                // Когда пользователь входит в чат
+                console.log('Вход в чат, isUserInChat устанавливается в true');
+                isUserInChat = true;
+            }
+        }
+
         async function register() {
             const email = document.getElementById('register-email').value;
             const password = document.getElementById('register-password').value;
@@ -2981,23 +3083,6 @@
                 alert('Профиль успешно обновлен!');
             } catch (error) {
                 alert('Ошибка обновления профиля: ' + error.message);
-            }
-        }
-
-        function showSection(sectionName) {
-            document.querySelectorAll('.content-section').forEach(section => {
-                section.classList.remove('active');
-            });
-            
-            document.getElementById(sectionName + '-section').classList.add('active');
-            
-            document.querySelectorAll('.nav-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            
-            if (sectionName !== 'chat') {
-                const navBtn = document.querySelector(`.nav-btn[onclick="showSection('${sectionName}')"]`);
-                if (navBtn) navBtn.classList.add('active');
             }
         }
 

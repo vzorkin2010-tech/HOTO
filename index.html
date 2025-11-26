@@ -2,7 +2,7 @@
 <html lang="ru" data-theme="light">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     
     <!-- ЗАЩИТА ОТ КОПИРОВАНИЯ И ПРОСМОТРА КОДА -->
     <style>
@@ -13,6 +13,7 @@
             -ms-user-select: none;
             user-select: none;
             -webkit-touch-callout: none;
+            -webkit-text-size-adjust: 100%;
         }
         
         /* Разрешить выделение для полей ввода */
@@ -44,18 +45,18 @@
 
         /* КРАСИВЫЙ КАСТОМНЫЙ СКРОЛЛБАР */
         ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
+            width: 6px;
+            height: 6px;
         }
 
         ::-webkit-scrollbar-track {
             background: transparent;
-            border-radius: 4px;
+            border-radius: 3px;
         }
 
         ::-webkit-scrollbar-thumb {
             background: var(--border-color);
-            border-radius: 4px;
+            border-radius: 3px;
             transition: var(--transition);
         }
 
@@ -71,7 +72,7 @@
 
         /* Для контейнеров с сообщениями - более тонкий скролл */
         .messages-container::-webkit-scrollbar {
-            width: 6px;
+            width: 4px;
         }
 
         .messages-container::-webkit-scrollbar-thumb {
@@ -95,7 +96,7 @@
             background: rgba(255, 255, 255, 0.1);
             border-radius: var(--border-radius);
             border: 1px solid var(--border-color);
-            max-width: 300px;
+            max-width: 100%;
             cursor: pointer;
             transition: var(--transition);
         }
@@ -184,7 +185,7 @@
         }
 
         .image-preview {
-            max-width: 200px;
+            max-width: 100%;
             max-height: 200px;
             border-radius: var(--border-radius);
             cursor: pointer;
@@ -228,7 +229,7 @@
             display: flex;
             flex-direction: column;
             gap: 10px;
-            max-width: 400px;
+            max-width: 90vw;
             pointer-events: none;
         }
 
@@ -244,7 +245,7 @@
             pointer-events: all;
             cursor: pointer;
             max-width: 350px;
-            min-width: 300px;
+            min-width: 280px;
         }
 
         .message-notification.show {
@@ -666,6 +667,9 @@
             --border-radius: 12px;
             --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             --mobile-padding: 16px;
+            --safe-area-inset-left: env(safe-area-inset-left);
+            --safe-area-inset-right: env(safe-area-inset-right);
+            --safe-area-inset-bottom: env(safe-area-inset-bottom);
         }
 
         [data-theme="dark"] {
@@ -687,23 +691,28 @@
         }
 
         body {
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
             background-color: var(--primary-bg);
             color: var(--text-primary);
             line-height: 1.6;
             transition: var(--transition);
             /* Скрыть стандартный скроллбар */
-            scrollbar-width: none; /* Firefox */
-            -ms-overflow-style: none; /* IE and Edge */
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            padding-left: var(--safe-area-inset-left);
+            padding-right: var(--safe-area-inset-right);
+            padding-bottom: var(--safe-area-inset-bottom);
         }
 
         body::-webkit-scrollbar {
-            display: none; /* Chrome, Safari and Opera */
+            display: none;
         }
 
         .section {
             display: none;
             height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
         }
 
         .section.active {
@@ -793,6 +802,7 @@
             font-size: 16px;
             transition: var(--transition);
             min-height: 48px;
+            -webkit-appearance: none;
         }
 
         .form-input:focus {
@@ -807,6 +817,7 @@
             margin: 0 auto;
             padding: 20px var(--mobile-padding);
             height: 100vh;
+            height: 100dvh;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -886,6 +897,8 @@
             top: 0;
             z-index: 100;
             min-height: 60px;
+            padding-left: calc(var(--mobile-padding) + var(--safe-area-inset-left));
+            padding-right: calc(var(--mobile-padding) + var(--safe-area-inset-right));
         }
 
         .app-title {
@@ -902,6 +915,7 @@
         .main-container {
             display: flex;
             height: calc(100vh - 60px);
+            height: calc(100dvh - 60px);
         }
 
         .sidebar {
@@ -911,19 +925,18 @@
             padding: 20px;
             display: flex;
             flex-direction: column;
-            /* Кастомный скролл для сайдбара */
             overflow-y: auto;
             scrollbar-width: thin;
             scrollbar-color: var(--border-color) transparent;
         }
 
         .sidebar::-webkit-scrollbar {
-            width: 6px;
+            width: 4px;
         }
 
         .sidebar::-webkit-scrollbar-thumb {
             background: var(--border-color);
-            border-radius: 3px;
+            border-radius: 2px;
         }
 
         .sidebar::-webkit-scrollbar-thumb:hover {
@@ -952,6 +965,7 @@
             font-weight: bold;
             font-size: 18px;
             border: 2px solid var(--accent-color);
+            flex-shrink: 0;
         }
 
         .avatar-large {
@@ -966,6 +980,7 @@
             font-weight: bold;
             font-size: 36px;
             border: 3px solid var(--accent-color);
+            flex-shrink: 0;
         }
 
         .sidebar-nav {
@@ -1005,18 +1020,19 @@
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            /* Кастомный скролл для контента */
             scrollbar-width: thin;
             scrollbar-color: var(--border-color) transparent;
+            padding-left: calc(var(--mobile-padding) + var(--safe-area-inset-left));
+            padding-right: calc(var(--mobile-padding) + var(--safe-area-inset-right));
         }
 
         .content::-webkit-scrollbar {
-            width: 8px;
+            width: 6px;
         }
 
         .content::-webkit-scrollbar-thumb {
             background: var(--border-color);
-            border-radius: 4px;
+            border-radius: 3px;
         }
 
         .content::-webkit-scrollbar-thumb:hover {
@@ -1059,13 +1075,13 @@
 
         .chats-list::-webkit-scrollbar,
         .users-list::-webkit-scrollbar {
-            width: 6px;
+            width: 4px;
         }
 
         .chats-list::-webkit-scrollbar-thumb,
         .users-list::-webkit-scrollbar-thumb {
             background: rgba(0, 0, 0, 0.1);
-            border-radius: 3px;
+            border-radius: 2px;
         }
 
         [data-theme="dark"] .chats-list::-webkit-scrollbar-thumb,
@@ -1111,6 +1127,7 @@
 
         .profile-form {
             max-width: 500px;
+            width: 100%;
         }
 
         .avatar-upload {
@@ -1159,6 +1176,7 @@
             align-items: center;
             justify-content: center;
             color: var(--text-primary);
+            flex-shrink: 0;
         }
 
         .btn-back:hover {
@@ -1174,6 +1192,7 @@
             border-radius: var(--border-radius);
             transition: var(--transition);
             flex: 1;
+            min-width: 0;
         }
 
         .chat-user-info:hover {
@@ -1189,7 +1208,6 @@
             gap: 12px;
             -webkit-overflow-scrolling: touch;
             min-height: 0;
-            /* Кастомный скролл для сообщений */
             scrollbar-width: thin;
             scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
         }
@@ -1199,17 +1217,17 @@
         }
 
         .messages-container::-webkit-scrollbar {
-            width: 6px;
+            width: 4px;
         }
 
         .messages-container::-webkit-scrollbar-track {
             background: transparent;
-            border-radius: 3px;
+            border-radius: 2px;
         }
 
         .messages-container::-webkit-scrollbar-thumb {
             background: rgba(0, 0, 0, 0.2);
-            border-radius: 3px;
+            border-radius: 2px;
             transition: var(--transition);
         }
 
@@ -1222,7 +1240,7 @@
         }
 
         .message {
-            max-width: 70%;
+            max-width: 85%;
             padding: 12px 16px;
             border-radius: var(--border-radius);
             position: relative;
@@ -1353,6 +1371,7 @@
             align-items: flex-end;
             min-height: 70px;
             flex-shrink: 0;
+            padding-bottom: calc(16px + var(--safe-area-inset-bottom));
         }
 
         .message-input-wrapper {
@@ -1375,6 +1394,7 @@
             resize: none;
             font-family: inherit;
             line-height: 1.4;
+            -webkit-appearance: none;
         }
 
         .message-input:focus {
@@ -1435,6 +1455,9 @@
             justify-content: center;
             animation: fadeIn 0.3s ease-out;
             padding: var(--mobile-padding);
+            padding-left: calc(var(--mobile-padding) + var(--safe-area-inset-left));
+            padding-right: calc(var(--mobile-padding) + var(--safe-area-inset-right));
+            padding-bottom: calc(var(--mobile-padding) + var(--safe-area-inset-bottom));
         }
 
         @keyframes fadeIn {
@@ -1454,7 +1477,6 @@
             max-width: 400px;
             width: 100%;
             animation: modalSlideIn 0.3s ease-out;
-            /* Кастомный скролл для модальных окон */
             max-height: 90vh;
             overflow-y: auto;
             scrollbar-width: thin;
@@ -1462,12 +1484,12 @@
         }
 
         .modal-content::-webkit-scrollbar {
-            width: 6px;
+            width: 4px;
         }
 
         .modal-content::-webkit-scrollbar-thumb {
             background: var(--border-color);
-            border-radius: 3px;
+            border-radius: 2px;
         }
 
         .modal-content::-webkit-scrollbar-thumb:hover {
@@ -1547,7 +1569,12 @@
             min-height: 60px;
         }
 
+        /* АДАПТАЦИЯ ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ */
         @media (max-width: 768px) {
+            :root {
+                --mobile-padding: 12px;
+            }
+
             .main-container {
                 flex-direction: column;
             }
@@ -1555,6 +1582,7 @@
             .sidebar {
                 width: 100%;
                 height: auto;
+                max-height: 40vh;
                 border-right: none;
                 border-bottom: 1px solid var(--border-color);
                 padding: 16px;
@@ -1564,6 +1592,7 @@
                 flex-direction: row;
                 overflow-x: auto;
                 padding-bottom: 8px;
+                gap: 4px;
             }
             
             .nav-btn {
@@ -1573,6 +1602,8 @@
                 justify-content: center;
                 text-align: center;
                 transform: none !important;
+                padding: 12px 16px;
+                font-size: 14px;
             }
             
             .nav-btn:hover,
@@ -1581,15 +1612,20 @@
             }
             
             .message {
-                max-width: 85%;
+                max-width: 90%;
+                padding: 10px 14px;
             }
             
             .header {
                 padding: 12px var(--mobile-padding);
+                padding-left: calc(var(--mobile-padding) + var(--safe-area-inset-left));
+                padding-right: calc(var(--mobile-padding) + var(--safe-area-inset-right));
             }
             
             .content {
                 padding: var(--mobile-padding);
+                padding-left: calc(var(--mobile-padding) + var(--safe-area-inset-left));
+                padding-right: calc(var(--mobile-padding) + var(--safe-area-inset-right));
             }
 
             .section-header {
@@ -1600,37 +1636,44 @@
 
             .section-header h3 {
                 text-align: center;
+                font-size: 1.2rem;
             }
 
             .search-box {
                 flex-direction: column;
+                gap: 8px;
             }
 
             .user-item {
                 flex-direction: column;
                 text-align: center;
                 gap: 12px;
+                padding: 12px;
             }
 
             /* Адаптация поля ввода для мобильных */
             .message-input-container {
                 padding: 12px 0;
                 gap: 8px;
+                padding-bottom: calc(12px + var(--safe-area-inset-bottom));
             }
 
             .message-input {
                 min-height: 44px;
                 padding: 12px 14px;
+                font-size: 16px;
             }
 
             .send-button {
                 min-height: 44px;
-                min-width: 70px;
+                min-width: 60px;
                 padding: 12px 16px;
+                font-size: 14px;
             }
 
             .modal-content {
                 padding: 20px;
+                margin: 0 var(--mobile-padding);
             }
 
             .message-actions {
@@ -1638,10 +1681,111 @@
                 display: flex !important;
                 margin-top: 8px;
                 justify-content: flex-end;
+                background: transparent;
+                border: none;
+                box-shadow: none;
+                padding: 0;
             }
 
             .message.sent .message-actions {
                 justify-content: flex-start;
+            }
+
+            .auth-container {
+                padding: 20px var(--mobile-padding);
+            }
+
+            .logo h1 {
+                font-size: 2rem;
+            }
+
+            .auth-form h2 {
+                font-size: 1.3rem;
+            }
+
+            .avatar-large {
+                width: 80px;
+                height: 80px;
+                font-size: 28px;
+            }
+
+            .profile-form {
+                max-width: 100%;
+            }
+
+            .notifications-container {
+                right: 10px;
+                left: 10px;
+                max-width: none;
+            }
+
+            .message-notification {
+                min-width: auto;
+                max-width: none;
+            }
+        }
+
+        /* АДАПТАЦИЯ ДЛЯ ОЧЕНЬ МАЛЕНЬКИХ ЭКРАНОВ */
+        @media (max-width: 360px) {
+            :root {
+                --mobile-padding: 8px;
+            }
+
+            .nav-btn {
+                min-width: 100px;
+                padding: 10px 12px;
+                font-size: 13px;
+            }
+
+            .message {
+                max-width: 95%;
+                padding: 8px 12px;
+            }
+
+            .avatar {
+                width: 36px;
+                height: 36px;
+                font-size: 16px;
+            }
+
+            .user-profile {
+                padding: 8px;
+                gap: 8px;
+            }
+
+            .chat-item, .user-item {
+                padding: 12px;
+                gap: 12px;
+            }
+
+            .message-input {
+                padding: 10px 12px;
+            }
+
+            .send-button {
+                min-width: 50px;
+                padding: 10px 12px;
+            }
+        }
+
+        /* ПОДДЕРЖКА ОРИЕНТАЦИИ */
+        @media (max-height: 500px) and (orientation: landscape) {
+            .auth-container {
+                padding: 10px var(--mobile-padding);
+                justify-content: flex-start;
+                overflow-y: auto;
+            }
+
+            .logo {
+                margin-bottom: 20px;
+            }
+
+            .logo h1 {
+                font-size: 1.8rem;
+            }
+
+            .sidebar {
+                max-height: 60vh;
             }
         }
 
@@ -1663,22 +1807,29 @@
 
         .chat-info {
             flex: 1;
+            min-width: 0;
         }
 
         .chat-info p {
             margin: 2px 0;
             font-size: 13px;
             color: var(--text-secondary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         .user-info {
             flex: 1;
+            min-width: 0;
         }
 
         .user-info p {
             margin: 2px 0;
             font-size: 13px;
             color: var(--text-secondary);
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .loading {
@@ -1708,6 +1859,18 @@
 
         .hidden {
             display: none !important;
+        }
+
+        /* Анимация появления сообщения */
+        @keyframes messageAppear {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
     </style>
 </head>
@@ -1965,7 +2128,29 @@
             initAuth();
             initEventListeners();
             initFileUpload();
+            setupViewport();
         });
+
+        function setupViewport() {
+            // Добавляем обработчик изменения ориентации
+            window.addEventListener('orientationchange', function() {
+                setTimeout(() => {
+                    window.scrollTo(0, 0);
+                }, 100);
+            });
+
+            // Предотвращаем масштабирование на iOS
+            document.addEventListener('touchmove', function(e) {
+                if (e.scale !== 1) {
+                    e.preventDefault();
+                }
+            }, { passive: false });
+
+            // Исправление для Safari на iOS
+            if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+                document.body.style.webkitTransform = 'translate3d(0,0,0)';
+            }
+        }
 
         function initTheme() {
             const savedTheme = localStorage.getItem('theme') || 'light';
@@ -2308,6 +2493,22 @@
                     }
                 }
             });
+
+            // Предотвращаем масштабирование на мобильных устройствах при двойном тапе
+            document.addEventListener('touchstart', function(e) {
+                if (e.touches.length > 1) {
+                    e.preventDefault();
+                }
+            }, { passive: false });
+
+            let lastTouchEnd = 0;
+            document.addEventListener('touchend', function(e) {
+                const now = (new Date()).getTime();
+                if (now - lastTouchEnd <= 300) {
+                    e.preventDefault();
+                }
+                lastTouchEnd = now;
+            }, false);
         }
 
         function initFileUpload() {
@@ -3229,6 +3430,7 @@
             
             return { nickname: 'Неизвестный', username: 'unknown' };
         }
+
     </script>
 </body>
 </html>

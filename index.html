@@ -324,7 +324,6 @@
             cursor: pointer;
             padding: 4px;
             border-radius: 50%;
-            color: var(--text-secondary);
             transition: var(--transition);
             flex-shrink: 0;
             width: 24px;
@@ -2134,8 +2133,11 @@
             notification.dataset.chatId = chatId;
             
             const firstLetter = sender.nickname ? sender.nickname.charAt(0).toUpperCase() : 'U';
-            // ДОБАВЛЕН support@gmail.com в список официальных аккаунтов
-            const isOfficial = sender.email === 'vzorkin2010@gmail.com' || sender.email === 'izbrannoe@gmail.com' || sender.email === 'support@gmail.com';
+            // ДОБАВЛЕН support@gmail.com и abugay12@mail.ru в список официальных аккаунтов
+            const isOfficial = sender.email === 'vzorkin2010@gmail.com' || 
+                               sender.email === 'izbrannoe@gmail.com' || 
+                               sender.email === 'support@gmail.com' ||
+                               sender.email === 'abugay12@mail.ru';
             
             notification.innerHTML = `
                 <div class="notification-content">
@@ -2394,8 +2396,11 @@
             const firstLetter = user.nickname ? user.nickname.charAt(0).toUpperCase() : 'U';
             
             // Проверяем, является ли пользователь официальным аккаунтом
-            // ДОБАВЛЕН support@gmail.com в список официальных аккаунтов
-            const isOfficial = user.email === 'vzorkin2010@gmail.com' || user.email === 'izbrannoe@gmail.com' || user.email === 'support@gmail.com';
+            // ДОБАВЛЕН support@gmail.com и abugay12@mail.ru в список официальных аккаунтов
+            const isOfficial = user.email === 'vzorkin2010@gmail.com' || 
+                               user.email === 'izbrannoe@gmail.com' || 
+                               user.email === 'support@gmail.com' ||
+                               user.email === 'abugay12@mail.ru';
             
             div.innerHTML = `
                 <div class="avatar">${firstLetter}</div>
@@ -2513,8 +2518,11 @@
             }
             
             // Проверяем, является ли пользователь официальным аккаунтом
-            // ДОБАВЛЕН support@gmail.com в список официальных аккаунтов
-            const isOfficial = currentChatUser.email === 'vzorkin2010@gmail.com' || currentChatUser.email === 'izbrannoe@gmail.com' || currentChatUser.email === 'support@gmail.com';
+            // ДОБАВЛЕН support@gmail.com и abugay12@mail.ru в список официальных аккаунтов
+            const isOfficial = currentChatUser.email === 'vzorkin2010@gmail.com' || 
+                               currentChatUser.email === 'izbrannoe@gmail.com' || 
+                               currentChatUser.email === 'support@gmail.com' ||
+                               currentChatUser.email === 'abugay12@mail.ru';
             
             document.getElementById('chat-username').innerHTML = `
                 ${currentChatUser.nickname}
@@ -2555,8 +2563,11 @@
             const firstLetter = currentChatUser.nickname ? currentChatUser.nickname.charAt(0).toUpperCase() : 'U';
             
             // Проверяем, является ли пользователь официальным аккаунтом
-            // ДОБАВЛЕН support@gmail.com в список официальных аккаунтов
-            const isOfficial = currentChatUser.email === 'vzorkin2010@gmail.com' || currentChatUser.email === 'izbrannoe@gmail.com' || currentChatUser.email === 'support@gmail.com';
+            // ДОБАВЛЕН support@gmail.com и abugay12@mail.ru в список официальных аккаунтов
+            const isOfficial = currentChatUser.email === 'vzorkin2010@gmail.com' || 
+                               currentChatUser.email === 'izbrannoe@gmail.com' || 
+                               currentChatUser.email === 'support@gmail.com' ||
+                               currentChatUser.email === 'abugay12@mail.ru';
             
             document.getElementById('modal-avatar').className = 'avatar-large';
             document.getElementById('modal-avatar').style.background = '';

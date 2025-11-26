@@ -2318,17 +2318,26 @@
             });
         }
 
-        // НОВАЯ ФУНКЦИЯ: ЗАГРУЗКА ЧАТОВ (только пользователи с которыми есть общение)
+        // ИСПРАВЛЕННАЯ ФУНКЦИЯ ЗАГРУЗКИ ЧАТОВ
         async function loadChats() {
             try {
+                console.log('🔄 Начало загрузки чатов...');
                 const chatsContainer = document.getElementById('chats-list');
                 chatsContainer.innerHTML = '<p class="text-center">Загрузка чатов...</p>';
+
+                if (!currentUser) {
+                    console.error('❌ Нет текущего пользователя');
+                    chatsContainer.innerHTML = '<p class="text-center">Ошибка: пользователь не авторизован</p>';
+                    return;
+                }
 
                 // Получаем все чаты текущего пользователя
                 const chatsQuery = await db.collection('chats')
                     .where('participants', 'array-contains', currentUser.uid)
                     .orderBy('lastMessageTime', 'desc')
                     .get();
+
+                console.log(`📨 Найдено чатов: ${chatsQuery.size}`);
 
                 if (chatsQuery.empty) {
                     chatsContainer.innerHTML = '<p class="text-center">У вас пока нет чатов</p>';
@@ -2337,34 +2346,51 @@
 
                 chatsContainer.innerHTML = '';
                 let hasActiveChats = false;
+                let processedChats = 0;
 
                 // Обрабатываем каждый чат
                 for (const doc of chatsQuery.docs) {
-                    const chatData = doc.data();
-                    
-                    // Находим ID другого участника чата
-                    const otherParticipantId = chatData.participants.find(id => id !== currentUser.uid);
-                    
-                    if (otherParticipantId) {
-                        // Получаем данные пользователя
-                        const userData = await getUserData(otherParticipantId);
+                    try {
+                        const chatData = doc.data();
+                        console.log('💬 Обработка чата:', chatData);
                         
-                        // Показываем чат только если есть сообщения
-                        if (chatData.lastMessage) {
-                            const chatElement = createChatElement(userData, doc.id, chatData);
-                            chatsContainer.appendChild(chatElement);
-                            hasActiveChats = true;
+                        // Находим ID другого участника чата
+                        const otherParticipantId = chatData.participants?.find(id => id !== currentUser.uid);
+                        
+                        if (otherParticipantId) {
+                            console.log('👤 Найден участник:', otherParticipantId);
+                            
+                            // Получаем данные пользователя
+                            const userData = await getUserData(otherParticipantId);
+                            console.log('📊 Данные пользователя:', userData);
+                            
+                            if (userData) {
+                                // Создаем элемент чата независимо от наличия сообщений
+                                const chatElement = createChatElement(userData, doc.id, chatData);
+                                chatsContainer.appendChild(chatElement);
+                                hasActiveChats = true;
+                                processedChats++;
+                            } else {
+                                console.warn('⚠️ Не удалось получить данные пользователя для ID:', otherParticipantId);
+                            }
+                        } else {
+                            console.warn('⚠️ Не найден другой участник в чате:', doc.id);
                         }
+                    } catch (error) {
+                        console.error('❌ Ошибка обработки чата:', error);
                     }
                 }
+
+                console.log(`✅ Обработано чатов: ${processedChats}`);
 
                 if (!hasActiveChats) {
                     chatsContainer.innerHTML = '<p class="text-center">У вас пока нет активных чатов</p>';
                 }
 
             } catch (error) {
-                console.error('Ошибка загрузки чатов:', error);
-                document.getElementById('chats-list').innerHTML = '<p class="text-center">Ошибка загрузки чатов</p>';
+                console.error('❌ Критическая ошибка загрузки чатов:', error);
+                document.getElementById('chats-list').innerHTML = 
+                    '<p class="text-center">Ошибка загрузки чатов: ' + error.message + '</p>';
             }
         }
 
@@ -2378,21 +2404,30 @@
             const isOfficial = user.email === 'vzorkin2010@gmail.com' || user.email === 'izbrannoe@gmail.com';
             
             // Форматируем время последнего сообщения
-            const lastMessageTime = chatData.lastMessageTime ? formatTime(chatData.lastMessageTime.toDate()) : 'Нет сообщений';
+            let lastMessageTime = 'Нет сообщений';
+            if (chatData.lastMessageTime) {
+                lastMessageTime = formatTime(chatData.lastMessageTime.toDate());
+            }
+            
+            // Форматируем последнее сообщение
+            let lastMessage = chatData.lastMessage || 'Нет сообщений';
+            if (lastMessage.length > 50) {
+                lastMessage = lastMessage.substring(0, 50) + '...';
+            }
             
             div.innerHTML = `
                 <div class="avatar">${firstLetter}</div>
                 <div class="chat-info">
                     <strong class="${isOfficial ? 'official-badge' : ''}">
-                        ${user.nickname}
+                        ${user.nickname || 'Неизвестный'}
                         ${isOfficial ? `
                             <span class="official-checkmark">
                                 <span class="official-tooltip">Официальный аккаунт или же модификация мессенджера Hoto</span>
                             </span>
                         ` : ''}
                     </strong>
-                    <p>${chatData.lastMessage || 'Нет сообщений'}</p>
-                    <p class="message-time">${lastMessageTime}</p>
+                    <p>${lastMessage}</p>
+                    <p style="font-size: 12px; color: var(--text-secondary);">${lastMessageTime}</p>
                 </div>
             `;
             return div;
@@ -2439,6 +2474,7 @@
                     resultsContainer.innerHTML = '<p class="text-center">Пользователи не найдены</p>';
                 }
             } catch (error) {
+                console.error('Ошибка поиска:', error);
                 resultsContainer.innerHTML = '<p class="text-center">Ошибка поиска</p>';
             }
         }
@@ -2457,7 +2493,7 @@
                 <div class="avatar">${firstLetter}</div>
                 <div class="user-info">
                     <strong class="${isOfficial ? 'official-badge' : ''}">
-                        ${user.nickname}
+                        ${user.nickname || 'Неизвестный'}
                         ${isOfficial ? `
                             <span class="official-checkmark">
                                 <span class="official-tooltip">Официальный аккаунт или же модификация мессенджера Hoto</span>
@@ -2465,7 +2501,7 @@
                         ` : ''}
                     </strong>
                     <p>@${user.username}</p>
-                    ${user.bio ? `<p>${user.bio}</p>` : ''}
+                    ${user.bio ? `<p style="font-size: 14px;">${user.bio}</p>` : ''}
                 </div>
             `;
             return div;
@@ -2574,7 +2610,7 @@
             const isOfficial = currentChatUser.email === 'vzorkin2010@gmail.com' || currentChatUser.email === 'izbrannoe@gmail.com';
             
             document.getElementById('chat-username').innerHTML = `
-                ${currentChatUser.nickname}
+                ${currentChatUser.nickname || 'Пользователь'}
                 ${isOfficial ? `
                     <span class="official-checkmark">
                         <span class="official-tooltip">Официальный аккаунт или же модификация мессенджера Hoto</span>
@@ -3221,6 +3257,7 @@
                 const doc = await db.collection('users').doc(userId).get();
                 if (doc.exists) {
                     const userData = doc.data();
+                    userData.uid = userId; // Добавляем ID пользователя
                     usersCache.set(userId, userData);
                     return userData;
                 }
@@ -3228,7 +3265,13 @@
                 console.error('Ошибка загрузки пользователя:', error);
             }
             
-            return { nickname: 'Неизвестный', username: 'unknown' };
+            // Возвращаем объект по умолчанию если пользователь не найден
+            return { 
+                uid: userId,
+                nickname: 'Неизвестный', 
+                username: 'unknown',
+                bio: ''
+            };
         }
 
     </script>

@@ -287,6 +287,13 @@
             font-weight: bold;
             font-size: 16px;
             flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .notification-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
         .notification-info {
@@ -505,6 +512,43 @@
         .official-checkmark:hover .official-tooltip {
             opacity: 1;
             visibility: visible;
+        }
+
+        /* Стили для загрузки аватарок */
+        .avatar-upload-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .avatar-upload-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: var(--transition);
+            cursor: pointer;
+        }
+
+        .avatar-upload-container:hover .avatar-upload-overlay {
+            opacity: 1;
+        }
+
+        .avatar-upload-text {
+            color: white;
+            font-size: 12px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .avatar-input {
+            display: none;
         }
     </style>
     
@@ -1024,6 +1068,14 @@
             font-size: 18px;
             border: 2px solid var(--accent-color);
             flex-shrink: 0;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
         .avatar-large {
@@ -1039,6 +1091,14 @@
             font-size: 36px;
             border: 3px solid var(--accent-color);
             flex-shrink: 0;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .avatar-large img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
         .sidebar-nav {
@@ -2021,7 +2081,15 @@
                 <!-- Сайдбар -->
                 <div class="sidebar">
                     <div class="user-profile">
-                        <div id="user-avatar" class="avatar">U</div>
+                        <div class="avatar-upload-container">
+                            <div id="user-avatar" class="avatar">
+                                <span>U</span>
+                            </div>
+                            <div class="avatar-upload-overlay" onclick="document.getElementById('avatar-input').click()">
+                                <div class="avatar-upload-text">Сменить аватар</div>
+                            </div>
+                        </div>
+                        <input type="file" id="avatar-input" class="avatar-input" accept="image/*">
                         <span id="user-nickname">Пользователь</span>
                     </div>
                     
@@ -2070,7 +2138,15 @@
                         </div>
                         <div class="profile-form">
                             <div class="avatar-upload">
-                                <div id="profile-avatar" class="avatar-large">U</div>
+                                <div class="avatar-upload-container">
+                                    <div id="profile-avatar" class="avatar-large">
+                                        <span>U</span>
+                                    </div>
+                                    <div class="avatar-upload-overlay" onclick="document.getElementById('profile-avatar-input').click()">
+                                        <div class="avatar-upload-text">Сменить аватар</div>
+                                    </div>
+                                </div>
+                                <input type="file" id="profile-avatar-input" class="avatar-input" accept="image/*">
                             </div>
                             
                             <div class="form-group">
@@ -2098,7 +2174,9 @@
                         <div class="chat-header">
                             <button onclick="showSection('chats')" class="btn-back">←</button>
                             <div class="chat-user-info" id="chat-user-info">
-                                <div id="chat-avatar" class="avatar">U</div>
+                                <div id="chat-avatar" class="avatar">
+                                    <span>U</span>
+                                </div>
                                 <span id="chat-username">Пользователь</span>
                             </div>
                         </div>
@@ -2138,7 +2216,9 @@
                 <button class="modal-close" onclick="closeUserProfile()">×</button>
             </div>
             <div class="profile-preview">
-                <div id="modal-avatar" class="avatar-large">U</div>
+                <div id="modal-avatar" class="avatar-large">
+                    <span>U</span>
+                </div>
             </div>
             <div class="profile-info">
                 <div class="profile-field">
@@ -2204,6 +2284,7 @@
             initAuth();
             initEventListeners();
             initFileUpload();
+            initAvatarUpload();
             setupViewport();
         });
 
@@ -2276,6 +2357,83 @@
                 document.getElementById('app').classList.remove('hidden');
                 showAuth();
             });
+        }
+
+        // Инициализация загрузки аватарок
+        function initAvatarUpload() {
+            const avatarInput = document.getElementById('avatar-input');
+            const profileAvatarInput = document.getElementById('profile-avatar-input');
+            
+            avatarInput.addEventListener('change', function(e) {
+                if (e.target.files.length > 0) {
+                    uploadAvatar(e.target.files[0]);
+                }
+            });
+            
+            profileAvatarInput.addEventListener('change', function(e) {
+                if (e.target.files.length > 0) {
+                    uploadAvatar(e.target.files[0]);
+                }
+            });
+        }
+
+        // Загрузка аватарки
+        async function uploadAvatar(file) {
+            if (!currentUser) return;
+
+            try {
+                // Проверяем тип файла
+                if (!file.type.startsWith('image/')) {
+                    alert('Пожалуйста, выберите изображение');
+                    return;
+                }
+
+                // Проверяем размер файла (максимум 5MB)
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('Размер файла не должен превышать 5MB');
+                    return;
+                }
+
+                // Показываем индикатор загрузки
+                const userAvatar = document.getElementById('user-avatar');
+                const profileAvatar = document.getElementById('profile-avatar');
+                userAvatar.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;">⏳</div>';
+                profileAvatar.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;">⏳</div>';
+
+                // Генерируем уникальное имя файла
+                const fileExtension = file.name.split('.').pop();
+                const fileName = `avatars/${currentUser.uid}/avatar_${Date.now()}.${fileExtension}`;
+                
+                // Загружаем файл в Firebase Storage
+                const storageRef = storage.ref(fileName);
+                const uploadTask = storageRef.put(file);
+
+                // Ожидаем завершения загрузки
+                const snapshot = await uploadTask;
+                const downloadURL = await snapshot.ref.getDownloadURL();
+
+                // Обновляем URL аватарки в Firestore
+                await db.collection('users').doc(currentUser.uid).update({
+                    avatarURL: downloadURL,
+                    avatarUpdatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                // Обновляем данные пользователя
+                currentUserData.avatarURL = downloadURL;
+                currentUserData.avatarUpdatedAt = new Date();
+
+                // Обновляем UI
+                updateProfileUI();
+                
+                alert('Аватарка успешно обновлена!');
+
+            } catch (error) {
+                console.error('Ошибка загрузки аватарки:', error);
+                alert('Ошибка загрузки аватарки: ' + error.message);
+                
+                // Восстанавливаем старую аватарку
+                updateProfileUI();
+            }
         }
 
         // ИСПРАВЛЕННАЯ СИСТЕМА УВЕДОМЛЕНИЙ
@@ -2402,7 +2560,12 @@
             
             notification.innerHTML = `
                 <div class="notification-content">
-                    <div class="notification-avatar">${firstLetter}</div>
+                    <div class="notification-avatar">
+                        ${sender.avatarURL ? 
+                            `<img src="${sender.avatarURL}" alt="${sender.nickname}" onerror="this.style.display='none'; this.parentNode.innerHTML='${firstLetter}'">` : 
+                            firstLetter
+                        }
+                    </div>
                     <div class="notification-info">
                         <div class="notification-sender">
                             ${sender.nickname}
@@ -2680,7 +2843,12 @@
                                user.email === 'abugay12@mail.ru';
             
             div.innerHTML = `
-                <div class="avatar">${firstLetter}</div>
+                <div class="avatar">
+                    ${user.avatarURL ? 
+                        `<img src="${user.avatarURL}" alt="${user.nickname}" onerror="this.style.display='none'; this.parentNode.innerHTML='${firstLetter}'">` : 
+                        firstLetter
+                    }
+                </div>
                 <div class="user-info">
                     <strong class="${isOfficial ? 'official-badge' : ''}">
                         ${user.nickname}
@@ -2731,17 +2899,20 @@
         async function updateChatParticipantsInfo(chatId, participantIds) {
             try {
                 const participantsData = {};
+                const avatarsData = {};
                 
                 for (const uid of participantIds) {
                     const userDoc = await db.collection('users').doc(uid).get();
                     if (userDoc.exists) {
                         const userData = userDoc.data();
                         participantsData[uid] = userData.nickname || userData.username;
+                        avatarsData[uid] = userData.avatarURL || '';
                     }
                 }
                 
                 await db.collection('chats').doc(chatId).update({
-                    participantNames: participantsData
+                    participantNames: participantsData,
+                    participantAvatars: avatarsData
                 });
                 
             } catch (error) {
@@ -2812,8 +2983,12 @@
             
             const chatAvatar = document.getElementById('chat-avatar');
             const firstLetter = currentChatUser.nickname ? currentChatUser.nickname.charAt(0).toUpperCase() : 'U';
-            chatAvatar.className = 'avatar';
-            chatAvatar.textContent = firstLetter;
+            
+            if (currentChatUser.avatarURL) {
+                chatAvatar.innerHTML = `<img src="${currentChatUser.avatarURL}" alt="${currentChatUser.nickname}" onerror="this.style.display='none'; this.parentNode.innerHTML='${firstLetter}'">`;
+            } else {
+                chatAvatar.innerHTML = firstLetter;
+            }
             
             // Показываем кнопку профиля для обычных чатов
             const chatUserInfo = document.getElementById('chat-user-info');
@@ -2846,9 +3021,13 @@
                                currentChatUser.email === 'support@gmail.com' ||
                                currentChatUser.email === 'abugay12@mail.ru';
             
-            document.getElementById('modal-avatar').className = 'avatar-large';
-            document.getElementById('modal-avatar').style.background = '';
-            document.getElementById('modal-avatar').textContent = firstLetter;
+            const modalAvatar = document.getElementById('modal-avatar');
+            if (currentChatUser.avatarURL) {
+                modalAvatar.innerHTML = `<img src="${currentChatUser.avatarURL}" alt="${currentChatUser.nickname}" onerror="this.style.display='none'; this.parentNode.innerHTML='${firstLetter}'">`;
+            } else {
+                modalAvatar.innerHTML = firstLetter;
+            }
+            
             document.getElementById('modal-nickname').innerHTML = `
                 ${currentChatUser.nickname || 'Неизвестно'}
                 ${isOfficial ? `
@@ -3430,13 +3609,18 @@
         function updateProfileUI() {
             if (!currentUserData) return;
 
-            // Обновляем аватары с первой буквой никнейма
+            // Обновляем аватары
             const userAvatar = document.getElementById('user-avatar');
             const profileAvatar = document.getElementById('profile-avatar');
             const firstLetter = currentUserData.nickname ? currentUserData.nickname.charAt(0).toUpperCase() : 'U';
             
-            userAvatar.textContent = firstLetter;
-            profileAvatar.textContent = firstLetter;
+            if (currentUserData.avatarURL) {
+                userAvatar.innerHTML = `<img src="${currentUserData.avatarURL}" alt="${currentUserData.nickname}" onerror="this.style.display='none'; this.parentNode.innerHTML='${firstLetter}'">`;
+                profileAvatar.innerHTML = `<img src="${currentUserData.avatarURL}" alt="${currentUserData.nickname}" onerror="this.style.display='none'; this.parentNode.innerHTML='${firstLetter}'">`;
+            } else {
+                userAvatar.innerHTML = firstLetter;
+                profileAvatar.innerHTML = firstLetter;
+            }
 
             document.getElementById('user-nickname').textContent = currentUserData.nickname;
             document.getElementById('profile-nickname').value = currentUserData.nickname;
